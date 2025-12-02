@@ -229,12 +229,36 @@ LANG_TEXT = {
         "feature_title_3": "Correlation Analysis",
         "feature_desc_3": "Use Pearson, Spearman, and Chi-square to assess relationships between variables."
     },
-    "zh": {"language_name": "中文", "title": "📊 调查数据分析", "subtitle": "上传问卷数据文件（CSV/Excel），交互式地探索描述性统计、可视化和相关性检验。"},
-    "ja": {"language_name": "日本語", "title": "📊 アンケートデータ分析", "subtitle": "アンケートファイル（CSV/Excel）をアップロードして、記述統計・可视化・相関分析を行います。"},
-    "ko": {"language_name": "한국어", "title": "📊 설문 데이터 분석", "subtitle": "설문 파일(CSV/Excel)을 업로드하고 기술 통계, 시각화, 상관 분석을 수행합니다."},
-    "es": {"language_name": "Español", "title": "📊 Análisis de Datos de Encuestas", "subtitle": "Cargue su archivo de encuesta (CSV/Excel) y explore estadísticas descriptivas, visualizaciones y pruebas de correlación."},
-    "ar": {"language_name": "العربية", "title": "📊 تحليل بيانات الاستبيان", "subtitle": "قم برفع ملف الاستبيان (CSV/Excel) لاستكشاف الإحصاءات الوصفية والرسوم البيانية واختبارات الارتباط."},
-    "it": {"language_name": "Italiano", "title": "📊 Analisi dei Dati di Sondaggio", "subtitle": "Carica il file del sondaggio (CSV/Excel) ed esplora statistiche descrittive, visualizzazioni e test di correlazione."},
+    "zh": {
+        "language_name": "中文",
+        "title": "📊 调查数据分析",
+        "subtitle": "上传问卷数据文件（CSV/Excel），交互式地探索描述性统计、可视化和相关性检验。",
+    },
+    "ja": {
+        "language_name": "日本語",
+        "title": "📊 アンケートデータ分析",
+        "subtitle": "アンケートファイル（CSV/Excel）をアップロードして、記述統計・可视化・相関分析を行います。",
+    },
+    "ko": {
+        "language_name": "한국어",
+        "title": "📊 설문 데이터 분석",
+        "subtitle": "설문 파일(CSV/Excel)을 업로드하고 기술 통계, 시각화, 상관 분석을 수행합니다.",
+    },
+    "es": {
+        "language_name": "Español",
+        "title": "📊 Análisis de Datos de Encuestas",
+        "subtitle": "Cargue su archivo de encuesta (CSV/Excel) y explore estadísticas descriptivas, visualizaciones y pruebas de correlación.",
+    },
+    "ar": {
+        "language_name": "العربية",
+        "title": "📊 تحليل بيانات الاستبيان",
+        "subtitle": "قم برفع ملف الاستبيان (CSV/Excel) لاستكشاف الإحصاءات الوصفية والرسوم البيانية واختبارات الارتباط.",
+    },
+    "it": {
+        "language_name": "Italiano",
+        "title": "📊 Analisi dei Dati di Sondaggio",
+        "subtitle": "Carica il file del sondaggio (CSV/Excel) ed esplora statistiche descrittive, visualizzazioni e test di correlazione.",
+    },
 }
 
 for code in ["zh", "ja", "ko", "es", "ar", "it"]:
@@ -244,7 +268,9 @@ for code in ["zh", "ja", "ko", "es", "ar", "it"]:
 def get_text(lang: str, key: str) -> str:
     if lang not in LANG_TEXT:
         lang = "en"
-    return LANG_TEXT.get(lang, LANG_TEXT["en"]).get(key, LANG_TEXT["en"].get(key, key))
+    return LANG_TEXT.get(lang, LANG_TEXT["en"]).get(
+        key, LANG_TEXT["en"].get(key, key)
+    )
 
 # --------------------------- HELPER FUNCTIONS ---------------------------
 
