@@ -7,19 +7,14 @@ import matplotlib.pyplot as plt
 from scipy.stats import pearsonr, spearmanr, chi2_contingency
 import nltk
 from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
 import string
 from collections import Counter
 
-# Inisialisasi resource NLTK (boleh dikomentari jika sudah di-download)
+# Inisialisasi resource NLTK (hanya stopwords, tanpa punkt)
 try:
     _ = stopwords.words("english")
 except LookupError:
     nltk.download("stopwords")
-try:
-    _ = word_tokenize("test")
-except LookupError:
-    nltk.download("punkt")
 
 # --------------------------- PAGE CONFIG & CSS ---------------------------
 
@@ -110,7 +105,7 @@ LANG_TEXT = {
         "text_columns_detected": "Kolom teks terdeteksi:",
         "select_text_col": "Pilih kolom teks untuk diproses",
         "no_text_columns": "Tidak ada kolom bertipe teks yang terdeteksi.",
-        "text_processing_note": "Teks akan diubah menjadi huruf kecil, dihapus tanda baca, ditokenisasi, dan dihapus stopword bahasa Inggris.",
+        "text_processing_note": "Teks akan diubah menjadi huruf kecil, dihapus tanda baca, ditokenisasi (split spasi), dan dihapus stopword bahasa Inggris.",
         "sample_tokens": "Contoh token yang telah diproses",
         "top_words": "10 Kata Teratas Berdasarkan Frekuensi",
         "stats_subheader": "📈 Statistik Deskriptif & Distribusi",
@@ -151,7 +146,7 @@ LANG_TEXT = {
         "significant_assoc": "Terdapat asosiasi yang signifikan secara statistik antara kedua variabel.",
         "no_significant_assoc": "Tidak terdapat asosiasi yang signifikan secara statistik antara kedua variabel.",
         "corr_direction_positive": "Hubungan positif: ketika X meningkat, Y cenderung meningkat.",
-        "corr_direction_negative": "Hubungan negatif: ketika X meningkat, Y cenderang menurun.",
+        "corr_direction_negative": "Hubungan negatif: ketika X meningkat, Y cenderung menurun.",
         "corr_direction_zero": "Tidak ada arah hubungan yang jelas (mendekati nol).",
         "corr_strength_none": "Kekuatan hubungan hampir tidak ada.",
         "corr_strength_weak": "Hubungan lemah.",
@@ -178,7 +173,7 @@ LANG_TEXT = {
         "text_columns_detected": "Detected text columns:",
         "select_text_col": "Select a text column to process",
         "no_text_columns": "No text-type columns detected.",
-        "text_processing_note": "Text will be lowercased, punctuation removed, tokenized, and English stopwords removed.",
+        "text_processing_note": "Text will be lowercased, punctuation removed, tokenized (split by spaces), and English stopwords removed.",
         "sample_tokens": "Sample of processed tokens",
         "top_words": "Top 10 Words by Frequency",
         "stats_subheader": "📈 Descriptive Statistics & Distribution",
@@ -234,36 +229,12 @@ LANG_TEXT = {
         "feature_title_3": "Correlation Analysis",
         "feature_desc_3": "Use Pearson, Spearman, and Chi-square to assess relationships between variables."
     },
-    "zh": {
-        "language_name": "中文",
-        "title": "📊 调查数据分析",
-        "subtitle": "上传问卷数据文件（CSV/Excel），交互式地探索描述性统计、可视化和相关性检验。",
-    },
-    "ja": {
-        "language_name": "日本語",
-        "title": "📊 アンケートデータ分析",
-        "subtitle": "アンケートファイル（CSV/Excel）をアップロードして、記述統계・可视化・相関分析を行います。",
-    },
-    "ko": {
-        "language_name": "한국어",
-        "title": "📊 설문 데이터 분석",
-        "subtitle": "설문 파일(CSV/Excel)을 업로드하고 기술 통계, 시각화, 상관 분석을 수행합니다.",
-    },
-    "es": {
-        "language_name": "Español",
-        "title": "📊 Análisis de Datos de Encuestas",
-        "subtitle": "Cargue su archivo de encuesta (CSV/Excel) y explore estadísticas descriptivas, visualizaciones y pruebas de correlación.",
-    },
-    "ar": {
-        "language_name": "العربية",
-        "title": "📊 تحليل بيانات الاستبيان",
-        "subtitle": "قم برفع ملف الاستبيان (CSV/Excel) لاستكشاف الإحصاءات الوصفية والرسوم البيانية واختبارات الارتباط.",
-    },
-    "it": {
-        "language_name": "Italiano",
-        "title": "📊 Analisi dei Dati di Sondaggio",
-        "subtitle": "Carica il file del sondaggio (CSV/Excel) ed esplora statistiche descrittive, visualizzazioni e test di correlazione.",
-    },
+    "zh": {"language_name": "中文", "title": "📊 调查数据分析", "subtitle": "上传问卷数据文件（CSV/Excel），交互式地探索描述性统计、可视化和相关性检验。"},
+    "ja": {"language_name": "日本語", "title": "📊 アンケートデータ分析", "subtitle": "アンケートファイル（CSV/Excel）をアップロードして、記述統計・可视化・相関分析を行います。"},
+    "ko": {"language_name": "한국어", "title": "📊 설문 데이터 분석", "subtitle": "설문 파일(CSV/Excel)을 업로드하고 기술 통계, 시각화, 상관 분석을 수행합니다."},
+    "es": {"language_name": "Español", "title": "📊 Análisis de Datos de Encuestas", "subtitle": "Cargue su archivo de encuesta (CSV/Excel) y explore estadísticas descriptivas, visualizaciones y pruebas de correlación."},
+    "ar": {"language_name": "العربية", "title": "📊 تحليل بيانات الاستبيان", "subtitle": "قم برفع ملف الاستبيان (CSV/Excel) لاستكشاف الإحصاءات الوصفية والرسوم البيانية واختبارات الارتباط."},
+    "it": {"language_name": "Italiano", "title": "📊 Analisi dei Dati di Sondaggio", "subtitle": "Carica il file del sondaggio (CSV/Excel) ed esplora statistiche descrittive, visualizzazioni e test di correlazione."},
 }
 
 for code in ["zh", "ja", "ko", "es", "ar", "it"]:
@@ -273,9 +244,7 @@ for code in ["zh", "ja", "ko", "es", "ar", "it"]:
 def get_text(lang: str, key: str) -> str:
     if lang not in LANG_TEXT:
         lang = "en"
-    return LANG_TEXT.get(lang, LANG_TEXT["en"]).get(
-        key, LANG_TEXT["en"].get(key, key)
-    )
+    return LANG_TEXT.get(lang, LANG_TEXT["en"]).get(key, LANG_TEXT["en"].get(key, key))
 
 # --------------------------- HELPER FUNCTIONS ---------------------------
 
@@ -292,8 +261,8 @@ def load_data(uploaded_file):
         return None
     return None
 
-
 def preprocess_text_series(series: pd.Series) -> pd.Series:
+    """Preprocessing teks tanpa word_tokenize, pakai split spasi agar tidak perlu punkt."""
     eng_stop = set(stopwords.words("english"))
     punct_table = str.maketrans("", "", string.punctuation)
 
@@ -302,12 +271,11 @@ def preprocess_text_series(series: pd.Series) -> pd.Series:
             return []
         text = str(text).lower()
         text = text.translate(punct_table)
-        tokens = word_tokenize(text)
+        tokens = text.split()
         tokens = [t for t in tokens if t.isalpha() and t not in eng_stop]
         return tokens
 
     return series.apply(_clean)
-
 
 def descriptive_stats(series: pd.Series) -> pd.DataFrame:
     s = pd.to_numeric(series, errors="coerce")
@@ -321,12 +289,10 @@ def descriptive_stats(series: pd.Series) -> pd.DataFrame:
     }
     return pd.DataFrame(stats_dict, index=[0]).T.rename(columns={0: "value"})
 
-
 def frequency_tables(series: pd.Series) -> pd.DataFrame:
     freq = series.value_counts(dropna=False)
     pct = series.value_counts(normalize=True, dropna=False) * 100
     return pd.DataFrame({"count": freq, "percent": pct})
-
 
 def visualize_data(df: pd.DataFrame, col: str, lang: str):
     s = pd.to_numeric(df[col], errors="coerce").dropna()
@@ -344,7 +310,6 @@ def visualize_data(df: pd.DataFrame, col: str, lang: str):
         sns.boxplot(x=s, ax=ax2, color="#22c55e")
         ax2.set_title(get_text(lang, "boxplot"))
         st.pyplot(fig2)
-
 
 def interpret_strength(r: float, lang: str) -> str:
     if r is None or np.isnan(r):
@@ -366,7 +331,6 @@ def interpret_strength(r: float, lang: str) -> str:
         direction = get_text(lang, "corr_direction_zero")
     return f"{strength} {direction}"
 
-
 def correlation_analysis(df: pd.DataFrame, x_col: str, y_col: str, method: str = "pearson"):
     x = pd.to_numeric(df[x_col], errors="coerce")
     y = pd.to_numeric(df[y_col], errors="coerce")
@@ -379,7 +343,6 @@ def correlation_analysis(df: pd.DataFrame, x_col: str, y_col: str, method: str =
     else:
         r, p = pearsonr(x_clean, y_clean)
     return r, p
-
 
 def chi_square_test(df: pd.DataFrame, x_col: str, y_col: str):
     table = pd.crosstab(df[x_col], df[y_col])
@@ -451,7 +414,6 @@ for (code, label), col in zip(lang_options, cols):
             current_lang = code
 
 st.markdown("</div></div></div>", unsafe_allow_html=True)
-
 st.markdown("<div class='decorative-divider'></div>", unsafe_allow_html=True)
 
 # --------------------------- HERO SECTION ---------------------------
@@ -472,7 +434,6 @@ st.write("")
 
 st.markdown("<div class='main-card'>", unsafe_allow_html=True)
 
-# Upload section (drag & drop + Excel)
 st.markdown(f"### {get_text(current_lang, 'upload_subheader')}")
 
 u1, u2, u3 = st.columns([1, 2, 1])
@@ -500,7 +461,6 @@ if df is None:
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# Data preview sampai 1000 baris
 st.markdown(f"#### {get_text(current_lang, 'data_preview')}")
 max_rows_preview = 1000
 df_preview = df.head(max_rows_preview)
