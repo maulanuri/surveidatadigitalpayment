@@ -8,12 +8,24 @@ import nltk
 from nltk.corpus import stopwords
 import string
 from collections import Counter
-import time  # For loading spinner
+import time
+
 from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle,
+    PageBreak,
+    Image as RLImage,
+)
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from io import BytesIO
 
-# Initialize NLTK resources (only stopwords, without punkt)
+# --------------------------- NLTK INIT ---------------------------
 try:
     _ = stopwords.words("english")
 except LookupError:
@@ -28,7 +40,6 @@ if "language" not in st.session_state:
 # --------------------------- PAGE CONFIG & CSS ---------------------------
 st.set_page_config(page_title="Survey Data Analyzer", layout="wide")
 
-# Top bar: Dark mode + language selector
 top_col1, top_col2 = st.columns([3, 3])
 with top_col1:
     dm = st.toggle("🌙 Dark mode", value=st.session_state["dark_mode"])
@@ -36,9 +47,9 @@ with top_col1:
 with top_col2:
     lang = st.radio(
         "Language",
-        options=["EN", "ID", "JP", "KR", "CN"],
+        options=["EN", "ID", "JP", "KR", "CN", "AR"],
         horizontal=True,
-        index=["EN", "ID", "JP", "KR", "CN"].index(st.session_state["language"]),
+        index=["EN", "ID", "JP", "KR", "CN", "AR"].index(st.session_state["language"]),
     )
     st.session_state["language"] = lang
 
@@ -76,28 +87,6 @@ body {
     box-shadow: 0 12px 28px rgba(16, 185, 129, 0.35);
     border: 1px solid rgba(34, 197, 94, 0.30);
 }
-.lang-pill {
-    border-radius: 999px;
-    padding: 0.22rem 0.7rem;
-    border: 1px solid #22c55e;
-    font-size: 0.78rem;
-    font-weight: 600;
-    cursor: pointer;
-    background: #ffffff;
-    color: #15803d;
-    margin-left: 0.18rem;
-}
-.lang-pill-active {
-    border-radius: 999px;
-    padding: 0.22rem 0.7rem;
-    border: none;
-    font-size: 0.78rem;
-    font-weight: 600;
-    cursor: default;
-    background: linear-gradient(135deg, #22c55e, #16a34a);
-    color: #ffffff;
-    box-shadow: 0 10px 25px rgba(22, 163, 74, 0.5);
-}
 .helper-text {
     font-size: 0.82rem;
     color: #047857;
@@ -130,7 +119,6 @@ body {
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
-# Extra CSS for dark mode
 if st.session_state["dark_mode"]:
     st.markdown(
         """
@@ -218,6 +206,15 @@ TEXTS = {
         "export_desc": "Generate a complete PDF with all descriptive stats, normality test, histograms, boxplots, correlations, and text analysis summary.",
         "export_button": "Generate PDF report",
         "export_filename": "survey_full_report.pdf",
+        "pdf_title": "Survey Data Full Report",
+        "pdf_section_numdist": "1. Numeric Variables - Distributions",
+        "pdf_section_scatter": "2. Scatter Plots - Relationships",
+        "pdf_section_catbar": "3. Categorical Variables - Bar Charts",
+        "pdf_section_numfull": "4. Numeric Variables - Full Statistics",
+        "pdf_section_catfreq": "5. Categorical Variables - Frequency Tables",
+        "pdf_section_corr": "6. Correlation Analysis",
+        "pdf_section_text": "7. Text Analysis - Top Words",
+        "pdf_notext": "No text data to analyze.",
     },
     "ID": {
         "title": "📊 Analisis Data Survei",
@@ -284,114 +281,132 @@ TEXTS = {
         "export_desc": "Buat PDF lengkap berisi statistik deskriptif, uji normalitas, histogram, boxplot, korelasi, dan ringkasan analisis teks.",
         "export_button": "Buat laporan PDF",
         "export_filename": "laporan_survei_lengkap.pdf",
+        "pdf_title": "Laporan Lengkap Data Survei",
+        "pdf_section_numdist": "1. Variabel Numerik - Distribusi",
+        "pdf_section_scatter": "2. Scatter Plot - Hubungan",
+        "pdf_section_catbar": "3. Variabel Kategorikal - Diagram Batang",
+        "pdf_section_numfull": "4. Variabel Numerik - Statistik Lengkap",
+        "pdf_section_catfreq": "5. Variabel Kategorikal - Tabel Frekuensi",
+        "pdf_section_corr": "6. Analisis Korelasi",
+        "pdf_section_text": "7. Analisis Teks - Kata Teratas",
+        "pdf_notext": "Tidak ada data teks untuk dianalisis.",
     },
-    "JP": {
+    "JP": {  # Japanese
         "title": "📊 アンケートデータ分析",
-        "subtitle": "アンケートファイル（CSV/Excel）をアップロードして、記述統計・可視化・相関分析をインタラクティブに行います。",
+        "subtitle": "アンケートファイル（CSV/Excel）をアップロードして、記述統計・可視化・相関テストをインタラクティブに確認できます。",
         "upload_subheader": "📁 アンケートデータのアップロード",
-        "upload_label": "ここにドラッグ＆ドロップするかクリックしてファイルを選択（CSV, XLS, XLSX）",
-        "no_file": "まだファイルがアップロードされていません。分析を開始するにはファイルをアップロードしてください。",
-        "data_preview": "データプレビュー（先頭 1000 行まで）",
+        "upload_label": "ここにファイルをドラッグ＆ドロップ、またはクリックして選択（CSV, XLS, XLSX）",
+        "no_file": "まだファイルがアップロードされていません。分析を始めるにはファイルをアップロードしてください。",
+        "data_preview": "データプレビュー（先頭1000行まで）",
         "text_processing_subheader": "📝 テキスト前処理",
-        "text_columns_detected": "テキスト列が検出されました:",
-        "select_text_col": "処理するテキスト列を選択してください",
-        "no_text_columns": "テキスト型の列は検出されませんでした。",
+        "text_columns_detected": "検出されたテキスト列：",
+        "select_text_col": "前処理するテキスト列を選択",
+        "no_text_columns": "テキスト型の列が見つかりません。",
         "text_processing_note": "テキストは小文字化され、句読点が削除され、スペースで分割され、英語のストップワードが除去されます。",
         "sample_tokens": "前処理されたトークンのサンプル",
         "top_words": "出現頻度トップ10の単語",
         "stats_subheader": "📈 記述統計と分布",
-        "select_numeric_col": "統計とグラフ用の数値列を選択してください",
-        "no_numeric_cols": "利用できる数値列がありません。",
-        "desc_stats": "選択した列の記述統計",
-        "freq_table_subheader": "📊 カテゴリ別度数表",
-        "select_categorical_col": "度数表を作成するカテゴリ列を選択してください",
-        "no_categorical_cols": "利用できるカテゴリ列がありません。",
-        "freq_count": "件数",
-        "freq_percent": "割合 (%)",
+        "select_numeric_col": "統計・グラフ用の数値列を選択",
+        "no_numeric_cols": "利用可能な数値列がありません。",
+        "desc_stats": "選択された列の記述統計",
+        "freq_table_subheader": "📊 カテゴリ頻度表",
+        "select_categorical_col": "頻度表を作成するカテゴリ列を選択",
+        "no_categorical_cols": "カテゴリ列がありません。",
+        "freq_count": "度数",
+        "freq_percent": "割合（％）",
         "visual_subheader": "📉 データの可視化",
         "histogram": "ヒストグラム",
-        "boxplot": "ボックスプロット",
+        "boxplot": "箱ひげ図",
         "correlation_subheader": "🔗 相関と統計的検定",
-        "pearson_header": "ピアソン相関",
-        "spearman_header": "スピアマン相関",
+        "pearson_header": "ピアソンの相関",
+        "spearman_header": "スピアマンの順位相関",
         "chi_header": "カイ二乗検定",
-        "select_x_numeric": "X 変数（数値）を選択",
-        "select_y_numeric": "Y 変数（数値）を選択",
-        "not_enough_numeric": "この分析を行うのに十分な数値列がありません。",
+        "select_x_numeric": "X変数（数値）を選択",
+        "select_y_numeric": "Y変数（数値）を選択",
+        "not_enough_numeric": "この分析に必要な数値列が不足しています。",
         "pearson_result": "ピアソン相関の結果",
         "spearman_result": "スピアマン相関の結果",
         "corr_coef": "相関係数 (r)",
-        "p_value": "p 値",
+        "p_value": "p値",
         "interpretation": "解釈",
-        "select_x_cat": "X 変数（カテゴリ）を選択",
-        "select_y_cat": "Y 変数（カテゴリ）を選択",
-        "not_enough_categorical": "カイ二乗検定を行うのに十分なカテゴリ列がありません。",
+        "select_x_cat": "X変数（カテゴリ）を選択",
+        "select_y_cat": "Y変数（カテゴリ）を選択",
+        "not_enough_categorical": "カイ二乗検定に必要なカテゴリ列が不足しています。",
         "chi_square_result": "カイ二乗検定の結果",
         "chi_square_stat": "カイ二乗統計量",
         "chi_square_df": "自由度 (df)",
-        "chi_square_p": "p 値",
+        "chi_square_p": "p値",
         "alpha_note": "有意水準 α = 0.05 で検定しています。",
-        "significant_assoc": "2 つの変数の間には統計的に有意な関連があります。",
-        "no_significant_assoc": "2 つの変数の間に統計的に有意な関連は認められません。",
-        "corr_direction_positive": "正の関係：X が増加すると Y も増加する傾向があります。",
-        "corr_direction_negative": "負の関係：X が増加すると Y は減少する傾向があります。",
-        "corr_direction_zero": "明確な関係は見られません（相関係数は 0 に近い）。",
+        "significant_assoc": "2つの変数の間に統計的に有意な関係があります。",
+        "no_significant_assoc": "2つの変数の間に統計的に有意な関係はありません。",
+        "corr_direction_positive": "正の関係：Xが増加するとYも増加する傾向があります。",
+        "corr_direction_negative": "負の関係：Xが増加するとYは減少する傾向があります。",
+        "corr_direction_zero": "明確な関係の方向がありません（ほぼ0）。",
         "corr_strength_none": "ほとんど関係がありません。",
         "corr_strength_weak": "弱い関係です。",
         "corr_strength_moderate": "中程度の関係です。",
         "corr_strength_strong": "強い関係です。",
         "warning_select_valid": "有効な列の組み合わせを選択してください。",
-        "header_github": "GitHub でフォーク",
+        "header_github": "GitHubでフォーク",
         "nav_desc": "記述統計",
         "nav_visual": "可視化",
         "nav_corr": "相関・検定",
         "nav_text": "テキスト処理",
         "export_title": "レポートのエクスポート",
-        "export_desc": "記述統計、正規性検定、ヒストグラム、ボックスプロット、相関、テキスト分析サマリーを含む完全な PDF レポートを生成します。",
-        "export_button": "PDF レポートを作成",
-        "export_filename": "survey_full_report_ja.pdf",
+        "export_desc": "記述統計・正規性検定・ヒストグラム・箱ひげ図・相関・テキスト分析サマリーを含むPDFレポートを生成します。",
+        "export_button": "PDFレポートを生成",
+        "export_filename": "survey_full_report_jp.pdf",
+        "pdf_title": "アンケート完全レポート",
+        "pdf_section_numdist": "1. 数値変数 - 分布",
+        "pdf_section_scatter": "2. 散布図 - 関係",
+        "pdf_section_catbar": "3. カテゴリ変数 - 棒グラフ",
+        "pdf_section_numfull": "4. 数値変数 - 詳細統計",
+        "pdf_section_catfreq": "5. カテゴリ変数 - 度数表",
+        "pdf_section_corr": "6. 相関分析",
+        "pdf_section_text": "7. テキスト分析 - 上位語",
+        "pdf_notext": "分析できるテキストデータがありません。",
     },
-    "KR": {
+    "KR": {  # Korean
         "title": "📊 설문 데이터 분석",
-        "subtitle": "설문 파일(CSV/Excel)을 업로드하고 기술통계, 시각화, 상관분석을 인터랙티브하게 확인하세요.",
+        "subtitle": "설문 파일(CSV/Excel)을 업로드하고 기술통계, 시각화, 상관분석을 인터랙티브하게 탐색할 수 있습니다.",
         "upload_subheader": "📁 설문 데이터 업로드",
-        "upload_label": "여기에 드래그하여 놓거나 클릭해서 파일 선택 (CSV, XLS, XLSX)",
+        "upload_label": "여기에 파일을 드래그 앤 드롭하거나 클릭하여 선택하세요 (CSV, XLS, XLSX)",
         "no_file": "아직 업로드된 파일이 없습니다. 분석을 시작하려면 파일을 업로드하세요.",
-        "data_preview": "데이터 미리보기 (최대 상위 1000행)",
+        "data_preview": "데이터 미리보기 (최대 첫 1000행)",
         "text_processing_subheader": "📝 텍스트 전처리",
         "text_columns_detected": "감지된 텍스트 열:",
-        "select_text_col": "전처리할 텍스트 열을 선택하세요",
+        "select_text_col": "전처리할 텍스트 열 선택",
         "no_text_columns": "텍스트 형식의 열이 없습니다.",
-        "text_processing_note": "텍스트를 소문자로 변환하고, 구두점을 제거하며, 공백 기준으로 토큰화한 뒤 영어 불용어를 제거합니다.",
-        "sample_tokens": "전처리된 토큰 예시",
+        "text_processing_note": "텍스트는 소문자로 변환되고, 구두점이 제거되며, 공백 기준으로 분할되고, 영어 불용어가 제거됩니다.",
+        "sample_tokens": "전처리된 토큰 샘플",
         "top_words": "출현 빈도 상위 10개 단어",
         "stats_subheader": "📈 기술통계 및 분포",
-        "select_numeric_col": "통계 및 그래프용 숫자 열을 선택하세요",
+        "select_numeric_col": "통계/그래프용 숫자 열 선택",
         "no_numeric_cols": "사용 가능한 숫자 열이 없습니다.",
         "desc_stats": "선택한 열의 기술통계",
         "freq_table_subheader": "📊 범주형 빈도표",
-        "select_categorical_col": "빈도표를 생성할 범주형 열을 선택하세요",
-        "no_categorical_cols": "사용 가능한 범주형 열이 없습니다.",
+        "select_categorical_col": "빈도표를 만들 범주형 열 선택",
+        "no_categorical_cols": "범주형 열이 없습니다.",
         "freq_count": "빈도",
-        "freq_percent": "비율 (%)",
+        "freq_percent": "비율(%)",
         "visual_subheader": "📉 데이터 시각화",
         "histogram": "히스토그램",
         "boxplot": "박스플롯",
         "correlation_subheader": "🔗 상관관계 및 통계 검정",
-        "pearson_header": "피어슨 상관계수",
-        "spearman_header": "스피어만 상관계수",
+        "pearson_header": "피어슨 상관",
+        "spearman_header": "스피어만 순위 상관",
         "chi_header": "카이제곱 검정",
         "select_x_numeric": "X 변수(숫자)를 선택",
         "select_y_numeric": "Y 변수(숫자)를 선택",
-        "not_enough_numeric": "이 분석을 수행하기에 숫자 열이 충분하지 않습니다.",
-        "pearson_result": "피어슨 상관분석 결과",
-        "spearman_result": "스피어만 상관분석 결과",
+        "not_enough_numeric": "이 분석에 필요한 숫자 열이 부족합니다.",
+        "pearson_result": "피어슨 상관 결과",
+        "spearman_result": "스피어만 상관 결과",
         "corr_coef": "상관계수 (r)",
         "p_value": "p-값",
         "interpretation": "해석",
         "select_x_cat": "X 변수(범주형)를 선택",
         "select_y_cat": "Y 변수(범주형)를 선택",
-        "not_enough_categorical": "카이제곱 검정을 수행하기에 범주형 열이 충분하지 않습니다.",
+        "not_enough_categorical": "카이제곱 검정에 필요한 범주형 열이 부족합니다.",
         "chi_square_result": "카이제곱 검정 결과",
         "chi_square_stat": "카이제곱 통계량",
         "chi_square_df": "자유도 (df)",
@@ -399,76 +414,85 @@ TEXTS = {
         "alpha_note": "유의수준 α = 0.05에서 검정합니다.",
         "significant_assoc": "두 변수 사이에 통계적으로 유의한 관계가 있습니다.",
         "no_significant_assoc": "두 변수 사이에 통계적으로 유의한 관계가 없습니다.",
-        "corr_direction_positive": "양의 관계: X가 증가할수록 Y도 증가하는 경향이 있습니다.",
-        "corr_direction_negative": "음의 관계: X가 증가할수록 Y는 감소하는 경향이 있습니다.",
-        "corr_direction_zero": "뚜렷한 관계가 보이지 않습니다 (상관계수가 0에 가까움).",
+        "corr_direction_positive": "양의 관계: X가 증가하면 Y도 증가하는 경향이 있습니다.",
+        "corr_direction_negative": "음의 관계: X가 증가하면 Y는 감소하는 경향이 있습니다.",
+        "corr_direction_zero": "명확한 관계 방향이 없습니다(거의 0).",
         "corr_strength_none": "거의 관계가 없습니다.",
         "corr_strength_weak": "약한 관계입니다.",
-        "corr_strength_moderate": "중간 정도의 관계입니다.",
+        "corr_strength_moderate": "보통 정도의 관계입니다.",
         "corr_strength_strong": "강한 관계입니다.",
-        "warning_select_valid": "유효한 열 조합을 선택하세요.",
+        "warning_select_valid": "올바른 열 조합을 선택하세요.",
         "header_github": "GitHub에서 포크",
         "nav_desc": "기술통계",
         "nav_visual": "시각화",
-        "nav_corr": "상관/검정",
-        "nav_text": "텍스트 전처리",
+        "nav_corr": "상관 및 검정",
+        "nav_text": "텍스트 처리",
         "export_title": "보고서 내보내기",
-        "export_desc": "기술통계, 정규성 검정, 히스토그램, 박스플롯, 상관관계, 텍스트 분석 요약을 포함한 전체 PDF 보고서를 생성합니다.",
+        "export_desc": "기술통계, 정규성 검정, 히스토그램, 박스플롯, 상관분석, 텍스트 분석 요약을 포함한 전체 PDF 보고서를 생성합니다.",
         "export_button": "PDF 보고서 생성",
-        "export_filename": "survey_full_report_ko.pdf",
+        "export_filename": "survey_full_report_kr.pdf",
+        "pdf_title": "설문 데이터 전체 보고서",
+        "pdf_section_numdist": "1. 수치 변수 - 분포",
+        "pdf_section_scatter": "2. 산점도 - 관계",
+        "pdf_section_catbar": "3. 범주형 변수 - 막대 그래프",
+        "pdf_section_numfull": "4. 수치 변수 - 상세 통계",
+        "pdf_section_catfreq": "5. 범주형 변수 - 도수표",
+        "pdf_section_corr": "6. 상관 분석",
+        "pdf_section_text": "7. 텍스트 분석 - 상위 단어",
+        "pdf_notext": "분석할 텍스트 데이터가 없습니다.",
     },
-    "CN": {
+    "CN": {  # Chinese (Simplified)
         "title": "📊 问卷数据分析",
-        "subtitle": "上传问卷文件（CSV/Excel），交互式地查看描述性统计、可视化图表和相关性检验结果。",
+        "subtitle": "上传问卷文件（CSV/Excel），交互式地查看描述性统计、可视化和相关性检验。",
         "upload_subheader": "📁 上传问卷数据",
-        "upload_label": "将文件拖到此处或点击选择文件（CSV、XLS、XLSX）",
+        "upload_label": "将文件拖放到此处或点击选择（CSV, XLS, XLSX）",
         "no_file": "尚未上传文件。请先上传文件以开始分析。",
-        "data_preview": "数据预览（最多前 1000 行）",
+        "data_preview": "数据预览（前 1000 行）",
         "text_processing_subheader": "📝 文本预处理",
         "text_columns_detected": "检测到的文本列：",
-        "select_text_col": "请选择要处理的文本列",
-        "no_text_columns": "未检测到文本类型的列。",
-        "text_processing_note": "文本将转换为小写，移除标点符号，按空格分词，并删除英文停用词。",
-        "sample_tokens": "预处理后词元示例",
-        "top_words": "词频前 10 的单词",
+        "select_text_col": "选择要处理的文本列",
+        "no_text_columns": "未找到文本类型的列。",
+        "text_processing_note": "文本将被转为小写，去除标点符号，以空格分词，并移除英文停用词。",
+        "sample_tokens": "预处理后的词元示例",
+        "top_words": "词频最高的 10 个词",
         "stats_subheader": "📈 描述性统计与分布",
-        "select_numeric_col": "请选择用于统计与绘图的数值列",
+        "select_numeric_col": "选择用于统计/绘图的数值列",
         "no_numeric_cols": "没有可用的数值列。",
         "desc_stats": "所选列的描述性统计",
         "freq_table_subheader": "📊 分类频数表",
-        "select_categorical_col": "请选择要生成频数表的分类列",
-        "no_categorical_cols": "没有可用的分类列。",
+        "select_categorical_col": "选择用于频数表的分类列",
+        "no_categorical_cols": "没有分类列。",
         "freq_count": "频数",
-        "freq_percent": "百分比 (%)",
+        "freq_percent": "百分比（%）",
         "visual_subheader": "📉 数据可视化",
         "histogram": "直方图",
         "boxplot": "箱线图",
         "correlation_subheader": "🔗 相关性与统计检验",
         "pearson_header": "皮尔逊相关",
-        "spearman_header": "斯皮尔曼相关",
+        "spearman_header": "斯皮尔曼等级相关",
         "chi_header": "卡方检验",
-        "select_x_numeric": "选择 X 变量（数值型）",
-        "select_y_numeric": "选择 Y 变量（数值型）",
-        "not_enough_numeric": "可用于该分析的数值列数量不足。",
+        "select_x_numeric": "选择 X 变量（数值）",
+        "select_y_numeric": "选择 Y 变量（数值）",
+        "not_enough_numeric": "可用于该分析的数值列不足。",
         "pearson_result": "皮尔逊相关结果",
         "spearman_result": "斯皮尔曼相关结果",
         "corr_coef": "相关系数 (r)",
         "p_value": "p 值",
-        "interpretation": "解读",
-        "select_x_cat": "选择 X 变量（分类变量）",
-        "select_y_cat": "选择 Y 变量（分类变量）",
-        "not_enough_categorical": "可用于卡方检验的分类列数量不足。",
+        "interpretation": "解释",
+        "select_x_cat": "选择 X 变量（分类）",
+        "select_y_cat": "选择 Y 变量（分类）",
+        "not_enough_categorical": "用于卡方检验的分类列不足。",
         "chi_square_result": "卡方检验结果",
         "chi_square_stat": "卡方统计量",
         "chi_square_df": "自由度 (df)",
         "chi_square_p": "p 值",
         "alpha_note": "在显著性水平 α = 0.05 下进行检验。",
-        "significant_assoc": "两个变量之间存在统计学上显著的关联。",
-        "no_significant_assoc": "两个变量之间不存在统计学上显著的关联。",
-        "corr_direction_positive": "正相关：X 增加时，Y 一般也随之增加。",
-        "corr_direction_negative": "负相关：X 增加时，Y 一般随之减少。",
-        "corr_direction_zero": "未观察到明显关系（相关系数接近 0）。",
-        "corr_strength_none": "几乎没有关系。",
+        "significant_assoc": "两个变量之间存在统计上显著的关联。",
+        "no_significant_assoc": "两个变量之间不存在统计上显著的关联。",
+        "corr_direction_positive": "正相关：X 增加时，Y 通常也增加。",
+        "corr_direction_negative": "负相关：X 增加时，Y 通常减少。",
+        "corr_direction_zero": "没有明显的相关方向（接近 0）。",
+        "corr_strength_none": "几乎没有相关关系。",
         "corr_strength_weak": "相关关系较弱。",
         "corr_strength_moderate": "相关关系中等。",
         "corr_strength_strong": "相关关系较强。",
@@ -476,19 +500,103 @@ TEXTS = {
         "header_github": "在 GitHub 上 Fork",
         "nav_desc": "描述性统计",
         "nav_visual": "可视化",
-        "nav_corr": "相关/检验",
+        "nav_corr": "相关与检验",
         "nav_text": "文本处理",
         "export_title": "导出报告",
-        "export_desc": "生成完整 PDF 报告，包含描述性统计、正态性检验、直方图、箱线图、相关分析及文本分析摘要。",
+        "export_desc": "生成包含描述性统计、正态性检验、直方图、箱线图、相关分析和文本分析摘要的完整 PDF 报告。",
         "export_button": "生成 PDF 报告",
-        "export_filename": "survey_full_report_zh.pdf",
+        "export_filename": "survey_full_report_cn.pdf",
+        "pdf_title": "问卷数据完整报告",
+        "pdf_section_numdist": "1. 数值变量 - 分布",
+        "pdf_section_scatter": "2. 散点图 - 关系",
+        "pdf_section_catbar": "3. 类别变量 - 条形图",
+        "pdf_section_numfull": "4. 数值变量 - 详细统计",
+        "pdf_section_catfreq": "5. 类别变量 - 频数表",
+        "pdf_section_corr": "6. 相关分析",
+        "pdf_section_text": "7. 文本分析 - 高频词",
+        "pdf_notext": "没有可供分析的文本数据。",
+    },
+    "AR": {  # Arabic
+        "title": "📊 تحليل بيانات الاستبيان",
+        "subtitle": "قم برفع ملف الاستبيان (CSV/Excel) لاستكشاف الإحصاءات الوصفية والرسوم البيانية واختبارات الارتباط بطريقة تفاعلية.",
+        "upload_subheader": "📁 رفع بيانات الاستبيان",
+        "upload_label": "اسحب وأفلت الملف هنا أو اضغط للاختيار (CSV, XLS, XLSX)",
+        "no_file": "لم يتم رفع أي ملف بعد. يرجى رفع ملف لبدء التحليل.",
+        "data_preview": "معاينة البيانات (حتى أول 1000 صف)",
+        "text_processing_subheader": "📝 معالجة النصوص",
+        "text_columns_detected": "الأعمدة النصية المكتشفة:",
+        "select_text_col": "اختر عمود النص للمعالجة",
+        "no_text_columns": "لا توجد أعمدة من نوع نصي.",
+        "text_processing_note": "سيتم تحويل النص إلى حروف صغيرة، وإزالة علامات الترقيم، وتقسيمه إلى كلمات، وحذف كلمات الوقف الإنجليزية.",
+        "sample_tokens": "عينة من الرموز المعالجة",
+        "top_words": "أكثر 10 كلمات تكراراً",
+        "stats_subheader": "📈 الإحصاءات الوصفية والتوزيع",
+        "select_numeric_col": "اختر عموداً رقمياً للإحصاءات والرسوم",
+        "no_numeric_cols": "لا توجد أعمدة رقمية متاحة.",
+        "desc_stats": "الإحصاءات الوصفية للعمود المحدد",
+        "freq_table_subheader": "📊 جدول التكرار للفئات",
+        "select_categorical_col": "اختر عموداً فئوياً لجدول التكرار",
+        "no_categorical_cols": "لا توجد أعمدة فئوية.",
+        "freq_count": "العدد",
+        "freq_percent": "النسبة المئوية (%)",
+        "visual_subheader": "📉 عرض البيانات بيانياً",
+        "histogram": "مخطط التوزيع (Histogram)",
+        "boxplot": "مخطط الصندوق (Boxplot)",
+        "correlation_subheader": "🔗 الارتباط والاختبارات الإحصائية",
+        "pearson_header": "معامل ارتباط بيرسون",
+        "spearman_header": "معامل ارتباط سبيرمان",
+        "chi_header": "اختبار كاي تربيع",
+        "select_x_numeric": "اختر متغير X (رقمي)",
+        "select_y_numeric": "اختر متغير Y (رقمي)",
+        "not_enough_numeric": "لا يوجد عدد كافٍ من الأعمدة الرقمية لهذا التحليل.",
+        "pearson_result": "نتيجة ارتباط بيرسون",
+        "spearman_result": "نتيجة ارتباط سبيرمان",
+        "corr_coef": "معامل الارتباط (r)",
+        "p_value": "قيمة p",
+        "interpretation": "التفسير",
+        "select_x_cat": "اختر متغير X (فئوي)",
+        "select_y_cat": "اختر متغير Y (فئوي)",
+        "not_enough_categorical": "لا يوجد عدد كافٍ من الأعمدة الفئوية لاختبار كاي تربيع.",
+        "chi_square_result": "نتيجة اختبار كاي تربيع",
+        "chi_square_stat": "إحصائية كاي تربيع",
+        "chi_square_df": "درجات الحرية (df)",
+        "chi_square_p": "قيمة p",
+        "alpha_note": "تم الاختبار عند مستوى دلالة α = 0.05.",
+        "significant_assoc": "هناك علاقة ذات دلالة إحصائية بين المتغيرين.",
+        "no_significant_assoc": "لا توجد علاقة ذات دلالة إحصائية بين المتغيرين.",
+        "corr_direction_positive": "علاقة طردية: عند زيادة X يميل Y إلى الزيادة.",
+        "corr_direction_negative": "علاقة عكسية: عند زيادة X يميل Y إلى النقصان.",
+        "corr_direction_zero": "لا يوجد اتجاه واضح للعلاقة (قيمة الارتباط قريبة من الصفر).",
+        "corr_strength_none": "لا توجد علاقة تقريباً.",
+        "corr_strength_weak": "علاقة ضعيفة.",
+        "corr_strength_moderate": "علاقة متوسطة.",
+        "corr_strength_strong": "علاقة قوية.",
+        "warning_select_valid": "يرجى اختيار مجموعة أعمدة صحيحة.",
+        "header_github": "Fork على GitHub",
+        "nav_desc": "إحصاءات وصفية",
+        "nav_visual": "الرسوم البيانية",
+        "nav_corr": "الارتباط والاختبارات",
+        "nav_text": "معالجة النصوص",
+        "export_title": "تصدير التقرير",
+        "export_desc": "إنشاء تقرير PDF كامل يحتوي على الإحصاءات الوصفية، واختبار التوزيع الطبيعي، والرسوم البيانية، والارتباطات، وملخص تحليل النصوص.",
+        "export_button": "إنشاء تقرير PDF",
+        "export_filename": "survey_full_report_ar.pdf",
+        "pdf_title": "تقرير كامل لبيانات الاستبيان",
+        "pdf_section_numdist": "١. المتغيرات العددية - التوزيع",
+        "pdf_section_scatter": "٢. مخططات الانتشار - العلاقات",
+        "pdf_section_catbar": "٣. المتغيرات الفئوية - المخططات الشريطية",
+        "pdf_section_numfull": "٤. المتغيرات العددية - الإحصاءات الكاملة",
+        "pdf_section_catfreq": "٥. المتغيرات الفئوية - جداول التكرار",
+        "pdf_section_corr": "٦. تحليل الارتباط",
+        "pdf_section_text": "٧. تحليل النص - أهم الكلمات",
+        "pdf_notext": "لا توجد بيانات نصية للتحليل.",
     },
 }
 
 def get_text(key: str) -> str:
     lang = st.session_state.get("language", "EN")
-    base = TEXTS.get(lang, TEXTS["EN"])
-    return base.get(key, TEXTS["EN"].get(key, key))
+    lang_dict = TEXTS.get(lang, TEXTS.get("EN", {}))
+    return lang_dict.get(key, key)
 
 # --------------------------- HELPER FUNCTIONS ---------------------------
 def load_data(uploaded_file):
@@ -507,6 +615,7 @@ def load_data(uploaded_file):
 def preprocess_text_series(series: pd.Series) -> pd.Series:
     eng_stop = set(stopwords.words("english"))
     punct_table = str.maketrans("", "", string.punctuation)
+
     def _clean(text):
         if pd.isna(text):
             return []
@@ -515,6 +624,7 @@ def preprocess_text_series(series: pd.Series) -> pd.Series:
         tokens = text.split()
         tokens = [t for t in tokens if t.isalpha() and t not in eng_stop]
         return tokens
+
     return series.apply(_clean)
 
 def descriptive_stats(series: pd.Series) -> pd.DataFrame:
@@ -539,7 +649,7 @@ def visualize_data(df: pd.DataFrame, col: str):
     if s.empty:
         st.warning(get_text("warning_select_valid"))
         return
-    with st.spinner('Generating visualizations...'):
+    with st.spinner("Generating visualizations..."):
         time.sleep(0.5)
         c1, c2 = st.columns(2)
         with c1:
@@ -594,184 +704,322 @@ def chi_square_test(df: pd.DataFrame, x_col: str, y_col: str):
     expected_df = pd.DataFrame(expected, index=table.index, columns=table.columns)
     return chi2, p, dof, expected_df
 
-# ----------- PDF REPORT FULL EXPORT -----------
+# --------------------------- PDF REPORT FULL ---------------------------
 def build_survey_report_pdf(df, numeric_cols, cat_cols, text_cols):
-    from reportlab.lib.pagesizes import A4
-    from reportlab.pdfgen import canvas
-    from reportlab.lib.utils import ImageReader
-    from io import BytesIO
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-
     buffer = BytesIO()
-    c = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
-    margin = 36
-    y = height - margin
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=0.5 * inch,
+        rightMargin=0.5 * inch,
+        topMargin=0.5 * inch,
+        bottomMargin=0.5 * inch,
+    )
 
-    # Title
-    c.setFont("Helvetica-Bold", 18)
-    c.drawCentredString(width/2, y, "Survey Data Full Report")
-    y -= 30
+    story = []
 
-    # Metadata
-    c.setFont("Helvetica", 11)
-    c.drawString(margin, y, f"Rows: {df.shape[0]}, Columns: {df.shape[1]}")
-    y -= 18
-    c.drawString(margin, y, f"Numeric columns: {len(numeric_cols)} | Categorical columns: {len(cat_cols)} | Text columns: {len(text_cols)}")
-    y -= 25
+    styles = getSampleStyleSheet()
+    GREEN = colors.HexColor("#10B981")
 
-    # --- Descriptive Stats, Normality & Histogram ---
-    for col in numeric_cols:
-        c.setFont("Helvetica-Bold", 13)
-        c.drawString(margin, y, f"[NUMERIC] {col}")
-        y -= 15
-        stats_strs = []
-        s = pd.to_numeric(df[col], errors="coerce").dropna()
-        stats_strs += [f"Mean: {s.mean():.4f}", f"Median: {s.median():.4f}", f"Std: {s.std():.4f}"]
-        stats_strs += [f"Min: {s.min():.4f}", f"Max: {s.max():.4f}", f"Mode: {s.mode().iloc[0] if not s.mode().empty else 'NA'}"]
-        for stt in stats_strs:
-            c.setFont("Helvetica", 10)
-            c.drawString(margin+12, y, stt)
-            y -= 13
-        # Normality test
-        if len(s) >= 8:
-            stat, p_norm = normaltest(s)
-            c.setFont("Helvetica", 10)
-            c.drawString(margin+12, y, f"Normality (D’Agostino): stat={stat:.3f}, p-value={p_norm:.3f}, {'NORMAL' if p_norm>0.05 else 'NOT normal'}")
-            y -= 14
-        else:
-            c.setFont("Helvetica", 10)
-            c.drawString(margin+12, y, "Normality: Not enough data (min 8 values needed)")
-            y -= 14
+    title_style = ParagraphStyle(
+        "Title",
+        parent=styles["Heading1"],
+        fontName="Helvetica-Bold",
+        fontSize=18,
+        textColor=GREEN,
+        alignment=1,
+        spaceAfter=12,
+        spaceBefore=6,
+    )
+    h2_style = ParagraphStyle(
+        "Heading2",
+        parent=styles["Heading2"],
+        fontName="Helvetica-Bold",
+        fontSize=14,
+        textColor=GREEN,
+        spaceBefore=10,
+        spaceAfter=6,
+    )
+    h3_style = ParagraphStyle(
+        "Heading3",
+        parent=styles["Heading3"],
+        fontName="Helvetica-Bold",
+        fontSize=11,
+        textColor=colors.black,
+        spaceBefore=6,
+        spaceAfter=4,
+    )
+    normal_style = ParagraphStyle(
+        "NormalCustom",
+        parent=styles["BodyText"],
+        fontName="Helvetica",
+        fontSize=10,
+        leading=12,
+        spaceAfter=4,
+    )
+    small_style = ParagraphStyle(
+        "Small",
+        parent=styles["BodyText"],
+        fontName="Helvetica",
+        fontSize=8,
+        leading=9.5,
+        spaceAfter=2,
+    )
 
-        # Histogram
-        fig, ax = plt.subplots(figsize=(3.5, 2.2))
-        sns.histplot(s, kde=True, ax=ax, color="#16a34a")
-        ax.set_title(f"{col} Histogram")
-        img_hist = BytesIO()
-        plt.tight_layout()
-        plt.savefig(img_hist, format='png')
+    def make_table(data, col_widths=None, font_size=8, header_bg=GREEN):
+        if not data:
+            return None
+        tbl = Table(data, colWidths=col_widths, hAlign="LEFT")
+        n_rows = len(data)
+        style_cmds = [
+            ("BACKGROUND", (0, 0), (-1, 0), header_bg),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, 0), font_size),
+            ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+            ("FONTSIZE", (0, 1), (-1, -1), font_size),
+            ("TEXTCOLOR", (0, 1), (-1, -1), colors.black),
+            ("ALIGN", (0, 1), (-1, -1), "CENTER"),
+            ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+            ("LEFTPADDING", (0, 0), (-1, -1), 3),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+            ("TOPPADDING", (0, 0), (-1, -1), 2),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+        ]
+        if n_rows > 2:
+            for r in range(1, n_rows):
+                if r % 2 == 1:
+                    style_cmds.append(
+                        ("BACKGROUND", (0, r), (-1, r), colors.Color(0.96, 0.98, 0.97))
+                    )
+        tbl.setStyle(TableStyle(style_cmds))
+        return tbl
+
+    def fig_to_image(fig, width=6.5, height=2.5):
+        img_buffer = BytesIO()
+        fig.savefig(img_buffer, format="png", dpi=100, bbox_inches="tight")
+        img_buffer.seek(0)
         plt.close(fig)
-        img_hist.seek(0)
+        return RLImage(img_buffer, width=width * inch, height=height * inch)
 
-        if y < 130: c.showPage(); y = height - margin
-        c.drawImage(ImageReader(img_hist), margin+5, y-100, width=210, height=95)
-        y -= 110
+    story.append(Paragraph(get_text("pdf_title"), title_style))
+    meta_lines = [
+        f"Rows: {df.shape[0]}, Columns: {df.shape[1]}",
+        f"Numeric columns: {len(numeric_cols)}, Categorical columns: {len(cat_cols)}, Text columns: {len(text_cols)}",
+    ]
+    for line in meta_lines:
+        story.append(Paragraph(line, normal_style))
+    story.append(Spacer(1, 0.2 * inch))
 
-        # Boxplot
-        fig, ax = plt.subplots(figsize=(2.6,1.2))
-        sns.boxplot(x=s, ax=ax, color="#22c55e")
-        ax.set_title(f"{col} Boxplot", fontsize=9)
-        img_box = BytesIO()
-        plt.tight_layout()
-        plt.savefig(img_box, format='png')
-        plt.close(fig)
-        img_box.seek(0)
-
-        if y < 100: c.showPage(); y = height - margin
-        c.drawImage(ImageReader(img_box), margin+260, y-48, width=120, height=36)
-        y -= 25
-
-        y -= 6
-
-    # --- Visualizations: Scatter plot for all numeric pairs ---
-    if len(numeric_cols) >= 2:
-        import itertools
-        pairs = list(itertools.combinations(numeric_cols, 2))
-        c.setFont("Helvetica-Bold", 13)
-        c.drawString(margin, y, "Scatterplots (Numeric VS Numeric)")
-        y -= 18
-        for xcol, ycol in pairs:
-            if y < 170: c.showPage(); y = height - margin
-            s_x = pd.to_numeric(df[xcol], errors="coerce")
-            s_y = pd.to_numeric(df[ycol], errors="coerce")
-            mask = s_x.notna() & s_y.notna()
-            if mask.sum() < 10:
+    # 1. Numeric distributions
+    if numeric_cols:
+        story.append(Paragraph(get_text("pdf_section_numdist"), h2_style))
+        story.append(Spacer(1, 0.1 * inch))
+        for col in numeric_cols:
+            s = pd.to_numeric(df[col], errors="coerce").dropna()
+            if s.empty:
                 continue
-            fig, ax = plt.subplots(figsize=(3.1, 2.1))
-            ax.scatter(s_x[mask], s_y[mask], alpha=0.5, color="#0f766e", s=10)
-            ax.set_xlabel(xcol)
-            ax.set_ylabel(ycol)
-            ax.setTitle = f"{xcol} vs {ycol}"
+            stats_dict = {
+                "Mean": f"{s.mean():.4f}",
+                "Median": f"{s.median():.4f}",
+                "Std": f"{s.std():.4f}",
+                "Min": f"{s.min():.4f}",
+                "Max": f"{s.max():.4f}",
+            }
+            story.append(Paragraph(f"<b>{col}</b>", h3_style))
+            stats_table_data = [["Statistic", "Value"]] + [[k, v] for k, v in stats_dict.items()]
+            stats_tbl = make_table(stats_table_data, col_widths=[2.2 * inch, 2.2 * inch], font_size=8)
+            if stats_tbl:
+                story.append(stats_tbl)
+            story.append(Spacer(1, 0.15 * inch))
+
+            fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.2))
+            axes[0].hist(s, bins=20, color="#16a34a", edgecolor="black", alpha=0.7)
+            axes[0].set_title(f"Histogram - {col}", fontsize=10, fontweight="bold")
+            axes[0].set_xlabel("Value")
+            axes[0].set_ylabel("Frequency")
+            axes[0].grid(alpha=0.3)
+
+            axes[1].boxplot(s, vert=True)
+            axes[1].set_title(f"Boxplot - {col}", fontsize=10, fontweight="bold")
+            axes[1].set_ylabel("Value")
+            axes[1].grid(alpha=0.3, axis="y")
+
             plt.tight_layout()
-            img_sc = BytesIO()
-            plt.savefig(img_sc, format='png')
-            plt.close(fig)
-            img_sc.seek(0)
-            c.setFont("Helvetica", 9)
-            c.drawString(margin+6, y, f"{xcol} ~ {ycol}")
-            c.drawImage(ImageReader(img_sc), margin+65, y-65, width=130, height=65)
-            y -= 70
-        y -= 4
+            img = fig_to_image(fig, width=6.5, height=2.2)
+            story.append(img)
+            story.append(Spacer(1, 0.2 * inch))
 
-    # --- Correlation matrix ---
-    if len(numeric_cols) >= 2:
-        c.setFont("Helvetica-Bold", 13)
-        c.drawString(margin, y, "Correlation Matrix (Pearson)")
-        y -= 13
-        corrm = df[numeric_cols].corr(method="pearson").round(3)
-        colw = 60
-        c.setFont("Helvetica", 9)
-        c.setFillGray(0.92, 1)
-        c.rect(margin, y-15, colw * (1+len(corrm.columns)), 14+14*len(corrm), fill=1, stroke=0)
-        c.setFillGray(0,1)
-        c.setFont("Helvetica-Bold", 9)
-        for i,col in enumerate(corrm.columns):
-            c.drawString(margin + colw + i*colw, y, f"{col[:6]}")
-        for i,row in enumerate(corrm.itertuples()):
-            c.setFont("Helvetica-Bold", 9)
-            c.drawString(margin, y-12-14*i, str(corrm.index[i]))
-            c.setFont("Helvetica", 9)
-            for j,val in enumerate(row[1:]):
-                c.drawString(margin + colw + j*colw, y-12-14*i, str(val))
-        y -= (18 + 14*len(corrm))
-    else:
-        y -= 14
+    # 2. Scatter plots
+    if len(numeric_cols) > 1:
+        story.append(PageBreak())
+        story.append(Paragraph(get_text("pdf_section_scatter"), h2_style))
+        story.append(Spacer(1, 0.1 * inch))
+        pairs_to_plot = min(3, len(numeric_cols) - 1)
+        for i in range(pairs_to_plot):
+            x_col = numeric_cols[i]
+            y_col = numeric_cols[i + 1]
+            x = pd.to_numeric(df[x_col], errors="coerce")
+            y = pd.to_numeric(df[y_col], errors="coerce")
+            mask = x.notna() & y.notna()
+            x_clean, y_clean = x[mask], y[mask]
+            if len(x_clean) < 2:
+                continue
 
-    # --- Categorical freq tables ---
-    for catcol in cat_cols:
-        c.setFont("Helvetica-Bold", 12)
-        if y < 120: c.showPage(); y = height - margin
-        c.drawString(margin, y, f"[CATEGORY] {catcol} - Top 10")
-        y -= 14
-        vc = df[catcol].value_counts(dropna=False).head(10)
-        c.setFont("Helvetica", 10)
-        for idx, (val, cnt) in enumerate(vc.items()):
-            displ = str(val)[:25]
-            c.drawString(margin+10, y, f"{displ:>10} : {cnt}")
-            y -= 12
-        y -= 6
+            fig, ax = plt.subplots(figsize=(4.5, 3))
+            ax.scatter(x_clean, y_clean, alpha=0.6, color="#10b981", s=40, edgecolors="black", linewidth=0.5)
+            z = np.polyfit(x_clean, y_clean, 1)
+            p_line = np.poly1d(z)
+            ax.plot(x_clean, p_line(x_clean), "r--", alpha=0.8, linewidth=2, label="Trend")
+            ax.set_xlabel(x_col, fontsize=9)
+            ax.set_ylabel(y_col, fontsize=9)
+            ax.set_title(f"Scatter {x_col} vs {y_col}", fontsize=10, fontweight="bold")
+            ax.grid(alpha=0.3)
+            ax.legend()
+            plt.tight_layout()
 
-    # --- Text processing summary ---
+            img = fig_to_image(fig, width=4.5, height=3)
+            story.append(img)
+            story.append(Spacer(1, 0.15 * inch))
+
+    # 3. Categorical bar charts
+    if cat_cols:
+        story.append(PageBreak())
+        story.append(Paragraph(get_text("pdf_section_catbar"), h2_style))
+        story.append(Spacer(1, 0.1 * inch))
+        for cat_col in cat_cols[:3]:
+            freq = df[cat_col].value_counts().head(10)
+            fig, ax = plt.subplots(figsize=(5, 2.5))
+            freq.plot(kind="bar", ax=ax, color="#22c55e", edgecolor="black")
+            ax.set_title(f"Bar Chart - {cat_col}", fontsize=10, fontweight="bold")
+            ax.set_xlabel(cat_col)
+            ax.set_ylabel("Frequency")
+            ax.tick_params(axis="x", rotation=45)
+            ax.grid(alpha=0.3, axis="y")
+            plt.tight_layout()
+
+            img = fig_to_image(fig, width=5, height=2.5)
+            story.append(img)
+            story.append(Spacer(1, 0.2 * inch))
+
+    # 4. Numeric full stats
+    if numeric_cols:
+        story.append(PageBreak())
+        story.append(Paragraph(get_text("pdf_section_numfull"), h2_style))
+        story.append(Spacer(1, 0.1 * inch))
+        for col in numeric_cols:
+            s = pd.to_numeric(df[col], errors="coerce").dropna()
+            if s.empty:
+                continue
+            if not s.mode().empty:
+                mode_val = f"{s.mode().iloc[0]:.6f}"
+            else:
+                mode_val = "N/A"
+            stats_dict = {
+                "Mean": f"{s.mean():.6f}",
+                "Median": f"{s.median():.6f}",
+                "Mode": mode_val,
+                "Std Dev": f"{s.std():.6f}",
+                "Variance": f"{s.var():.6f}",
+                "Min": f"{s.min():.6f}",
+                "Max": f"{s.max():.6f}",
+                "Range": f"{(s.max() - s.min()):.6f}",
+                "Q1 (25%)": f"{s.quantile(0.25):.6f}",
+                "Q3 (75%)": f"{s.quantile(0.75):.6f}",
+                "IQR": f"{(s.quantile(0.75) - s.quantile(0.25)):.6f}",
+                "Skewness": f"{s.skew():.6f}",
+                "Kurtosis": f"{s.kurtosis():.6f}",
+            }
+            story.append(Paragraph(f"<b>{col}</b>", h3_style))
+            table_data = [["Statistic", "Value"]] + [[k, v] for k, v in stats_dict.items()]
+            tbl = make_table(table_data, col_widths=[2.5 * inch, 2.5 * inch], font_size=7)
+            if tbl:
+                story.append(tbl)
+            story.append(Spacer(1, 0.15 * inch))
+
+    # 5. Categorical frequency tables
+    if cat_cols:
+        story.append(PageBreak())
+        story.append(Paragraph(get_text("pdf_section_catfreq"), h2_style))
+        story.append(Spacer(1, 0.1 * inch))
+        for col in cat_cols:
+            freq = df[col].value_counts(dropna=False).head(15)
+            pct = (freq / len(df) * 100).round(2)
+            story.append(Paragraph(f"<b>{col}</b> Top 15", h3_style))
+            table_data = [["Category", "Count", "Percent"]] + [
+                [str(idx), str(int(freq[idx])), f"{pct[idx]:.2f}"] for idx in freq.index
+            ]
+            tbl = make_table(table_data, col_widths=[2 * inch, 1.5 * inch, 1.5 * inch], font_size=7)
+            if tbl:
+                story.append(tbl)
+            story.append(Spacer(1, 0.15 * inch))
+
+    # 6. Correlation matrix
+    if len(numeric_cols) > 1:
+        story.append(PageBreak())
+        story.append(Paragraph(get_text("pdf_section_corr"), h2_style))
+        story.append(Spacer(1, 0.1 * inch))
+        numeric_df = df[numeric_cols].apply(pd.to_numeric, errors="coerce")
+        corr_matrix = numeric_df.corr()
+        table_data = [["Variable"] + list(numeric_cols)]
+        for var in numeric_cols:
+            row = [var]
+            for col in numeric_cols:
+                r = corr_matrix.loc[var, col]
+                row.append(f"{r:.3f}")
+            table_data.append(row)
+        col_width = 6.5 / (len(numeric_cols) + 1)
+        tbl = make_table(
+            table_data,
+            col_widths=[col_width * inch for _ in range(len(numeric_cols) + 1)],
+            font_size=7,
+        )
+        if tbl:
+            story.append(tbl)
+        story.append(Spacer(1, 0.2 * inch))
+
+    # 7. Text analysis
     if text_cols:
-        for textcol in text_cols:
-            txts = df[textcol].dropna().astype(str)
-            eng_stop = set(stopwords.words("english"))
-            punct_table = str.maketrans("", "", string.punctuation)
-            tokens = []
-            for text in txts:
-                txt = text.lower().translate(punct_table)
-                tokens += [t for t in txt.split() if t.isalpha() and t not in eng_stop]
-            counter = Counter(tokens)
-            top10 = counter.most_common(10)
-            c.setFont("Helvetica-Bold", 11)
-            if y < 80: c.showPage(); y = height - margin
-            c.drawString(margin, y, f"Text Summary [{textcol}] Top Words")
-            y -= 15
-            c.setFont("Helvetica", 10)
-            for w,cnt in top10:
-                c.drawString(margin+9, y, f"{w:>12} : {cnt}")
-                y -= 12
-            y -= 8
+        story.append(PageBreak())
+        story.append(Paragraph(get_text("pdf_section_text"), h2_style))
+        story.append(Spacer(1, 0.1 * inch))
+        for col in text_cols[:2]:
+            story.append(Paragraph(f"<b>{col}</b>", h3_style))
+            tokens_series = preprocess_text_series(df[col])
+            all_tokens = []
+            for token_list in tokens_series:
+                all_tokens.extend(token_list)
+            if not all_tokens:
+                story.append(Paragraph(get_text("pdf_notext"), small_style))
+                story.append(Spacer(1, 0.1 * inch))
+                continue
+            word_freq = Counter(all_tokens).most_common(15)
+            table_data = [["Word", "Frequency"]] + [[word, str(count)] for word, count in word_freq]
+            tbl = make_table(table_data, col_widths=[3.5 * inch, 2 * inch], font_size=8)
+            if tbl:
+                story.append(tbl)
+            story.append(Spacer(1, 0.2 * inch))
 
-    c.showPage()
-    c.save()
-    pdf_bytes = buffer.getvalue()
-    buffer.close()
-    return pdf_bytes
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
 
-# --------------------------- HEADER + HERO + GROUP CARD ---------------------------
+def generate_pdf_button(df, numeric_cols, cat_cols, text_cols):
+    if st.button(get_text("export_button"), use_container_width=True):
+        with st.spinner(get_text("export_desc")):
+            time.sleep(0.5)
+            pdf_buffer = build_survey_report_pdf(df, numeric_cols, cat_cols, text_cols)
+        st.download_button(
+            label=get_text("export_button"),
+            data=pdf_buffer.getvalue(),
+            file_name=get_text("export_filename"),
+            mime="application/pdf",
+            use_container_width=True,
+        )
+        st.success("PDF generated successfully!")
+
+# --------------------------- HEADER + HERO ---------------------------
 st.markdown(
     f"""
     <div style="
@@ -793,7 +1041,6 @@ st.markdown(
 )
 
 content_font_size = "0.95rem"
-
 st.markdown(
     f"<p style='text-align:center; color:#065f46; font-size:{content_font_size};'>"
     f"{get_text('subtitle')}</p>",
@@ -801,10 +1048,10 @@ st.markdown(
 )
 
 group_members = [
-    {"name": "ADITYA ANGGARA PAMUNGKAS", "sid": "4202400051", "role": "Leader"},
-    {"name": "MAULA AQIEL NURI",        "sid": "4202400023", "role": "Member"},
-    {"name": "SYAFIQ NUR RAMADHAN",     "sid": "4202400073", "role": "Member"},
-    {"name": "RIFAT FITROTU SALMAN",    "sid": "4202400106", "role": "Member"},
+    {"name": "ADITYA ANGGARA PAMUNGKAS", "sid": "04202400051", "role": "Leader"},
+    {"name": "MAULA AQIEL NURI", "sid": "04202400023", "role": "Member"},
+    {"name": "SYAFIQ NUR RAMADHAN", "sid": "04202400073", "role": "Member"},
+    {"name": "RIFAT FITROTU SALMAN", "sid": "04202400106", "role": "Member"},
 ]
 
 st.markdown(
@@ -858,7 +1105,6 @@ if df is None:
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# Filter by categorical column (no rerun)
 filter_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
 filtered_df = df
 if filter_cols:
@@ -871,8 +1117,7 @@ if filter_cols:
             filtered_df = df[df[fcol].isin(selected_vals)]
 
 st.markdown(f"#### {get_text('data_preview')}")
-max_rows_preview = 1000
-df_preview = filtered_df.head(max_rows_preview)
+df_preview = filtered_df.head(1000)
 st.dataframe(df_preview, height=400, use_container_width=True)
 
 n_rows, n_cols = filtered_df.shape
@@ -902,7 +1147,7 @@ numeric_cols = filtered_df.select_dtypes(include=[np.number]).columns.tolist()
 cat_cols = filtered_df.select_dtypes(exclude=[np.number]).columns.tolist()
 text_cols = filtered_df.select_dtypes(include=["object", "string"]).columns.tolist()
 
-# --------------------------- TABS FOR FEATURES ---------------------------
+# --------------------------- TABS ---------------------------
 tab_desc, tab_vis, tab_corr, tab_text = st.tabs(
     [
         get_text("nav_desc"),
@@ -912,7 +1157,7 @@ tab_desc, tab_vis, tab_corr, tab_text = st.tabs(
     ]
 )
 
-# Text processing tab
+# Text processing
 with tab_text:
     with st.expander(get_text("text_processing_subheader"), expanded=True):
         if not text_cols:
@@ -942,7 +1187,7 @@ with tab_text:
                 st.markdown(f"**{get_text('top_words')}**")
                 st.table(top_df)
 
-# Descriptive stats tab
+# Descriptive stats
 with tab_desc:
     st.markdown(f"### {get_text('stats_subheader')}")
     if not numeric_cols:
@@ -956,12 +1201,9 @@ with tab_desc:
                 help="Column for descriptive statistics",
                 key="desc_num_col",
             )
-            # Descriptive stats
             stats_df = descriptive_stats(filtered_df[num_col])
             st.markdown(f"**{get_text('desc_stats')}**")
             st.table(stats_df)
-
-            # Normality test (D’Agostino-Pearson)
             s_norm = pd.to_numeric(filtered_df[num_col], errors="coerce").dropna()
             if len(s_norm) >= 8:
                 stat, p_norm = normaltest(s_norm)
@@ -974,7 +1216,6 @@ with tab_desc:
                     st.success("No significant deviation from normal distribution (fail to reject H0 at α = 0.05).")
             else:
                 st.info("Not enough data points for normality test (need at least 8 non-missing values).")
-
         with tab_dist:
             num_col2 = st.selectbox(
                 "Select column for distribution",
@@ -983,7 +1224,6 @@ with tab_desc:
                 key="desc_num_dist",
             )
             visualize_data(filtered_df, num_col2)
-
     if not cat_cols:
         st.info(get_text("no_categorical_cols"))
     else:
@@ -1000,13 +1240,12 @@ with tab_desc:
         st.markdown(f"### {get_text('freq_table_subheader')}")
         st.table(freq_df)
 
-# Visualization tab
+# Visualizations
 with tab_vis:
     if not numeric_cols:
         st.warning(get_text("no_numeric_cols"))
     else:
         vis_tab1, vis_tab2 = st.tabs(["Histogram / Boxplot", "Scatter & Bar"])
-
         with vis_tab1:
             num_col = st.selectbox(
                 get_text("select_numeric_col"),
@@ -1016,9 +1255,7 @@ with tab_vis:
             )
             st.markdown(f"### {get_text('visual_subheader')}")
             visualize_data(filtered_df, num_col)
-
         with vis_tab2:
-            # Scatter plot X vs Y
             if len(numeric_cols) >= 2:
                 c1, c2 = st.columns(2)
                 with c1:
@@ -1040,7 +1277,6 @@ with tab_vis:
             else:
                 st.info("Need at least 2 numeric columns for scatter plot.")
 
-            # Bar chart for categorical column
             if cat_cols:
                 cat_for_bar = st.selectbox(
                     "Categorical column for bar chart",
@@ -1057,7 +1293,7 @@ with tab_vis:
             else:
                 st.info("No categorical columns for bar chart.")
 
-# Correlation & tests tab
+# Correlations & tests
 with tab_corr:
     st.markdown(f"### {get_text('correlation_subheader')}")
     tab1, tab2, tab3 = st.tabs(
@@ -1067,7 +1303,6 @@ with tab_corr:
             get_text("chi_header"),
         ]
     )
-
     with tab1:
         if len(numeric_cols) < 2:
             st.info(get_text("not_enough_numeric"))
@@ -1088,25 +1323,22 @@ with tab_corr:
                     help="Dependent variable",
                 )
             if x_num and y_num:
-                try:
-                    r, p = correlation_analysis(filtered_df, x_num, y_num, method="pearson")
-                    if np.isnan(r):
-                        st.warning(get_text("warning_select_valid"))
-                    else:
-                        st.markdown(f"**{get_text('pearson_result')}**")
-                        out = pd.DataFrame(
-                            {
-                                get_text("corr_coef"): [r],
-                                get_text("p_value"): [p],
-                            }
-                        )
-                        st.table(out)
-                        st.markdown(
-                            f"**{get_text('interpretation')}:** "
-                            f"{interpret_strength(r)}"
-                        )
-                except Exception:
+                r, p = correlation_analysis(filtered_df, x_num, y_num, method="pearson")
+                if np.isnan(r):
                     st.warning(get_text("warning_select_valid"))
+                else:
+                    st.markdown(f"**{get_text('pearson_result')}**")
+                    out = pd.DataFrame(
+                        {
+                            get_text("corr_coef"): [r],
+                            get_text("p_value"): [p],
+                        }
+                    )
+                    st.table(out)
+                    st.markdown(
+                        f"**{get_text('interpretation')}:** "
+                        f"{interpret_strength(r)}"
+                    )
 
     with tab2:
         if len(numeric_cols) < 2:
@@ -1126,103 +1358,78 @@ with tab_corr:
                     key="spearman_y",
                 )
             if x_s and y_s:
-                try:
-                    r_s, p_s = correlation_analysis(filtered_df, x_s, y_s, method="spearman")
-                    if np.isnan(r_s):
-                        st.warning(get_text("warning_select_valid"))
-                    else:
-                        st.markdown(
-                            f"**{get_text('spearman_result')}**"
-                        )
-                        out_s = pd.DataFrame(
-                            {
-                                get_text("corr_coef"): [r_s],
-                                get_text("p_value"): [p_s],
-                            }
-                        )
-                        st.table(out_s)
-                        st.markdown(
-                            f"**{get_text('interpretation')}:** "
-                            f"{interpret_strength(r_s)}"
-                        )
-                except Exception:
+                r_s, p_s = correlation_analysis(filtered_df, x_s, y_s, method="spearman")
+                if np.isnan(r_s):
                     st.warning(get_text("warning_select_valid"))
+                else:
+                    st.markdown(f"**{get_text('spearman_result')}**")
+                    out_s = pd.DataFrame(
+                        {
+                            get_text("corr_coef"): [r_s],
+                            get_text("p_value"): [p_s],
+                        }
+                    )
+                    st.table(out_s)
+                    st.markdown(
+                        f"**{get_text('interpretation')}:** "
+                        f"{interpret_strength(r_s)}"
+                    )
 
     with tab3:
-        if len(cat_cols) < 2:
+        chi_df = filtered_df.copy()
+        chi_cat_candidates = [
+            c for c in chi_df.columns
+            if c.startswith("X") or c.startswith("Y") or c == "Responden"
+        ]
+        for c in chi_cat_candidates:
+            chi_df[c] = chi_df[c].astype(str)
+        cat_cols_chi = chi_cat_candidates
+        if len(cat_cols_chi) < 2:
             st.info(get_text("not_enough_categorical"))
         else:
             c1c, c2c = st.columns(2)
             with c1c:
                 x_cat = st.selectbox(
                     get_text("select_x_cat"),
-                    options=cat_cols,
+                    options=cat_cols_chi,
                     key="chi_x",
                 )
             with c2c:
                 y_cat = st.selectbox(
                     get_text("select_y_cat"),
-                    options=[c for c in cat_cols if c != x_cat],
+                    options=[c for c in cat_cols_chi if c != x_cat],
                     key="chi_y",
                 )
             if x_cat and y_cat:
-                try:
-                    chi2, p_val, dof_val, expected_df = chi_square_test(
-                        filtered_df, x_cat, y_cat
-                    )
-                    if chi2 is None:
-                        st.warning(get_text("warning_select_valid"))
-                    else:
-                        st.markdown(
-                            f"**{get_text('chi_square_result')}**"
-                        )
-                        out_c = pd.DataFrame(
-                            {
-                                get_text("chi_square_stat"): [chi2],
-                                get_text("chi_square_df"): [dof_val],
-                                get_text("chi_square_p"): [p_val],
-                            }
-                        )
-                        st.table(out_c)
-
-                        st.markdown("**Observed**")
-                        observed_table = pd.crosstab(filtered_df[x_cat], filtered_df[y_cat])
-                        st.dataframe(
-                            observed_table, height=200, use_container_width=True
-                        )
-
-                        st.markdown("**Expected**")
-                        st.dataframe(expected_df, height=200, use_container_width=True)
-
-                        st.markdown(f"_{get_text('alpha_note')}_")
-                        if p_val < 0.05:
-                            st.success(get_text("significant_assoc"))
-                        else:
-                            st.info(get_text("no_significant_assoc"))
-                except Exception:
+                table = pd.crosstab(chi_df[x_cat], chi_df[y_cat])
+                if table.size == 0:
                     st.warning(get_text("warning_select_valid"))
+                else:
+                    chi2, p_val, dof_val, expected = chi2_contingency(table)
+                    expected_df = pd.DataFrame(expected, index=table.index, columns=table.columns)
+                    st.markdown(f"**{get_text('chi_square_result')}**")
+                    out_c = pd.DataFrame(
+                        {
+                            get_text("chi_square_stat"): [chi2],
+                            get_text("chi_square_df"): [dof_val],
+                            get_text("chi_square_p"): [p_val],
+                        }
+                    )
+                    st.table(out_c)
+                    st.markdown("**Observed**")
+                    st.dataframe(table, height=200, use_container_width=True)
+                    st.markdown("**Expected**")
+                    st.dataframe(expected_df, height=200, use_container_width=True)
+                    st.markdown(f"_{get_text('alpha_note')}_")
+                    if p_val < 0.05:
+                        st.success(get_text("significant_assoc"))
+                    else:
+                        st.info(get_text("no_significant_assoc"))
 
-    st.markdown("#### Automatic correlation summary (numeric variables)")
-    if len(numeric_cols) >= 2:
-        corr_matrix = filtered_df[numeric_cols].corr(method="pearson")
-        st.dataframe(corr_matrix, use_container_width=True)
-    else:
-        st.info("Not enough numeric columns to compute full correlation matrix.")
-
-# --------------------------- EXPORT REPORT TO PDF ---------------------------
+# --------------------------- EXPORT PDF SECTION ---------------------------
 st.markdown(f"### {get_text('export_title')}")
-st.write(get_text("export_desc"))
-
-if st.button(get_text("export_button")):
-    pdf_bytes = build_survey_report_pdf(filtered_df, numeric_cols, cat_cols, text_cols)
-    st.download_button(
-        label=get_text("export_button"),
-        data=pdf_bytes,
-        file_name=get_text("export_filename"),
-        mime="application/pdf",
-    )
-
-st.markdown("</div>", unsafe_allow_html=True)
+st.markdown(get_text("export_desc"))
+generate_pdf_button(filtered_df, numeric_cols, cat_cols, text_cols)
 
 st.markdown("---")
 col1, col2, col3 = st.columns(3)
