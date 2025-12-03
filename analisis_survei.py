@@ -1006,7 +1006,7 @@ def build_survey_report_pdf(df, numeric_cols, cat_cols, text_cols):
     return buffer
 
 def generate_pdf_button(df, numeric_cols, cat_cols, text_cols):
-    if st.button(get_text("export_button"), use_container_width=True):
+    if st.button(get_text("export_button"), key="btn_export_pdf", type="primary"):
         with st.spinner(get_text("export_desc")):
             time.sleep(0.5)
             pdf_buffer = build_survey_report_pdf(df, numeric_cols, cat_cols, text_cols)
@@ -1015,7 +1015,7 @@ def generate_pdf_button(df, numeric_cols, cat_cols, text_cols):
             data=pdf_buffer.getvalue(),
             file_name=get_text("export_filename"),
             mime="application/pdf",
-            use_container_width=True,
+            key="dl_export_pdf",
         )
         st.success("PDF generated successfully!")
 
@@ -1092,7 +1092,7 @@ with u2:
         unsafe_allow_html=True,
     )
     uploaded = st.file_uploader(
-        label="",
+        "Upload survey file",
         type=["csv", "xls", "xlsx"],
         label_visibility="collapsed",
         accept_multiple_files=False,
@@ -1118,7 +1118,7 @@ if filter_cols:
 
 st.markdown(f"#### {get_text('data_preview')}")
 df_preview = filtered_df.head(1000)
-st.dataframe(df_preview, height=400, use_container_width=True)
+st.dataframe(df_preview, height=400)
 
 n_rows, n_cols = filtered_df.shape
 n_numeric = filtered_df.select_dtypes(include=[np.number]).shape[1]
@@ -1417,9 +1417,9 @@ with tab_corr:
                     )
                     st.table(out_c)
                     st.markdown("**Observed**")
-                    st.dataframe(table, height=200, use_container_width=True)
+                    st.dataframe(table, height=200)
                     st.markdown("**Expected**")
-                    st.dataframe(expected_df, height=200, use_container_width=True)
+                    st.dataframe(expected_df, height=200)
                     st.markdown(f"_{get_text('alpha_note')}_")
                     if p_val < 0.05:
                         st.success(get_text("significant_assoc"))
