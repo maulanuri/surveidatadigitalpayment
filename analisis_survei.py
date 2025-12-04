@@ -1431,7 +1431,3 @@ st.markdown(f"### {get_text('export_title')}")
 st.markdown(get_text("export_desc"))
 generate_pdf_button(filtered_df, numeric_cols, cat_cols, text_cols)
 
-st.markdown("---")
-col1, col2, col3 = st.columns(3)
-with col2:
-    st.markdown(f"[🐙 {get_text('header_github')}]()")
