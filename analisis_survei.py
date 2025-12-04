@@ -115,6 +115,24 @@ body {
     border-radius: 999px;
     background: #22c55e;
 }
+.section-card {
+    background-color: #FFFFFF;
+    border-radius: 18px;
+    padding: 1.0rem 1.4rem;
+    border: 1px solid rgba(34, 197, 94, 0.35);
+    box-shadow: 0 10px 26px rgba(16, 185, 129, 0.30);
+    margin: 0.6rem 0 0.9rem 0;
+}
+.section-title {
+    font-weight: 700;
+    font-size: 1.0rem;
+    margin-bottom: 0.25rem;
+}
+.section-subtitle {
+    font-size: 0.85rem;
+    color: #047857;
+    margin-bottom: 0;
+}
 </style>
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
@@ -146,7 +164,6 @@ TEXTS = {
         "subtitle": "Upload your survey file (CSV/Excel) and explore descriptive statistics, visualizations, and correlation tests interactively.",
         "upload_subheader": "📁 Upload Survey Data",
         "upload_label": "Drag & drop file here or click to browse (CSV, XLS, XLSX)",
-        "no_file": "No file uploaded yet. Please upload a file to start the analysis.",
         "data_preview": "Data Preview (up to first 1000 rows)",
         "text_processing_subheader": "📝 Text Preprocessing",
         "text_columns_detected": "Detected text columns:",
@@ -221,7 +238,6 @@ TEXTS = {
         "subtitle": "Unggah file survei (CSV/Excel) dan jelajahi statistik deskriptif, visualisasi, serta uji korelasi secara interaktif.",
         "upload_subheader": "📁 Unggah Data Survei",
         "upload_label": "Tarik & letakkan file di sini atau klik untuk memilih (CSV, XLS, XLSX)",
-        "no_file": "Belum ada file yang diunggah. Silakan unggah file untuk mulai analisis.",
         "data_preview": "Pratinjau Data (maksimal 1000 baris pertama)",
         "text_processing_subheader": "📝 Pemrosesan Teks",
         "text_columns_detected": "Kolom teks terdeteksi:",
@@ -296,7 +312,6 @@ TEXTS = {
         "subtitle": "アンケートファイル（CSV/Excel）をアップロードして、記述統計・可視化・相関テストをインタラクティブに確認できます。",
         "upload_subheader": "📁 アンケートデータのアップロード",
         "upload_label": "ここにファイルをドラッグ＆ドロップ、またはクリックして選択（CSV, XLS, XLSX）",
-        "no_file": "まだファイルがアップロードされていません。分析を始めるにはファイルをアップロードしてください。",
         "data_preview": "データプレビュー（先頭1000行まで）",
         "text_processing_subheader": "📝 テキスト前処理",
         "text_columns_detected": "検出されたテキスト列：",
@@ -371,7 +386,6 @@ TEXTS = {
         "subtitle": "설문 파일(CSV/Excel)을 업로드하고 기술통계, 시각화, 상관분석을 인터랙티브하게 탐색할 수 있습니다.",
         "upload_subheader": "📁 설문 데이터 업로드",
         "upload_label": "여기에 파일을 드래그 앤 드롭하거나 클릭하여 선택하세요 (CSV, XLS, XLSX)",
-        "no_file": "아직 업로드된 파일이 없습니다. 분석을 시작하려면 파일을 업로드하세요.",
         "data_preview": "데이터 미리보기 (최대 첫 1000행)",
         "text_processing_subheader": "📝 텍스트 전처리",
         "text_columns_detected": "감지된 텍스트 열:",
@@ -446,7 +460,6 @@ TEXTS = {
         "subtitle": "上传问卷文件（CSV/Excel），交互式地查看描述性统计、可视化和相关性检验。",
         "upload_subheader": "📁 上传问卷数据",
         "upload_label": "将文件拖放到此处或点击选择（CSV, XLS, XLSX）",
-        "no_file": "尚未上传文件。请先上传文件以开始分析。",
         "data_preview": "数据预览（前 1000 行）",
         "text_processing_subheader": "📝 文本预处理",
         "text_columns_detected": "检测到的文本列：",
@@ -521,7 +534,6 @@ TEXTS = {
         "subtitle": "قم برفع ملف الاستبيان (CSV/Excel) لاستكشاف الإحصاءات الوصفية والرسوم البيانية واختبارات الارتباط بطريقة تفاعلية.",
         "upload_subheader": "📁 رفع بيانات الاستبيان",
         "upload_label": "اسحب وأفلت الملف هنا أو اضغط للاختيار (CSV, XLS, XLSX)",
-        "no_file": "لم يتم رفع أي ملف بعد. يرجى رفع ملف لبدء التحليل.",
         "data_preview": "معاينة البيانات (حتى أول 1000 صف)",
         "text_processing_subheader": "📝 معالجة النصوص",
         "text_columns_detected": "الأعمدة النصية المكتشفة:",
@@ -1079,7 +1091,16 @@ st.markdown("<div class='decorative-divider'></div>", unsafe_allow_html=True)
 
 # --------------------------- UPLOAD & PREVIEW + FILTER ---------------------------
 st.markdown("<div class='main-card'>", unsafe_allow_html=True)
-st.markdown(f"### {get_text('upload_subheader')}")
+
+st.markdown(
+    f"""
+    <div class='section-card'>
+      <p class='section-title'>{get_text("upload_subheader")}</p>
+      <p class='section-subtitle'>{get_text("subtitle")}</p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 u1, u2, u3 = st.columns([1, 2, 1])
 with u2:
@@ -1125,19 +1146,9 @@ n_numeric = filtered_df.select_dtypes(include=[np.number]).shape[1]
 n_cat = filtered_df.select_dtypes(exclude=[np.number]).shape[1]
 st.markdown(
     f"""
-    <div style="margin:0.6rem 0 1.0rem 0;">
-      <span class="summary-badge">
-        <span class="summary-dot"></span>
-        {n_rows} rows
-      </span>
-      <span class="summary-badge">
-        <span class="summary-dot"></span>
-        {n_cols} columns
-      </span>
-      <span class="summary-badge">
-        <span class="summary-dot"></span>
-        {n_numeric} numeric • {n_cat} non-numeric
-      </span>
+    <div class='section-card'>
+      <p class='section-title'>{get_text("data_preview")}</p>
+      <p class='section-subtitle'>Filter dan lihat sampai 1000 baris pertama data survei.</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -1430,4 +1441,3 @@ with tab_corr:
 st.markdown(f"### {get_text('export_title')}")
 st.markdown(get_text("export_desc"))
 generate_pdf_button(filtered_df, numeric_cols, cat_cols, text_cols)
-
