@@ -38,108 +38,45 @@ if "language" not in st.session_state:
     st.session_state["language"] = "EN"
 
 # --------------------------- PAGE CONFIG & CSS ---------------------------
-st.set_page_config(page_title="Survey Data Analyzer", layout="wide")
+st.set_page_config(page_title="Digital Payment Usage & Financial Discipline Survey", layout="wide")
 
-content_font_size = '1.0rem'
+# Aurora background animation
+st.markdown("""
+<div class="aurora-container">
+    <div class="aurora-layer"></div>
+    <div class="aurora-layer"></div>
+    <div class="aurora-layer"></div>
+</div>
+""", unsafe_allow_html=True)
 
-top_col1, top_col2, top_col3 = st.columns([2, 1, 2])
+top_col1, top_col2 = st.columns([3, 3])
 with top_col1:
-    st.markdown("## Survey Analyzer")
-with top_col2:
     dm = st.toggle("🌙 Dark mode", value=st.session_state["dark_mode"])
     st.session_state["dark_mode"] = dm
-with top_col3:
+with top_col2:
     lang = st.radio(
         "Language",
-        options=["EN", "ID", "JP", "KR", "CN", "AR", "ES", "HI", "FR", "RU", "PT"],
+        options=["EN", "ID", "JP", "KR", "CN", "AR"],
         horizontal=True,
-        index=["EN", "ID", "JP", "KR", "CN", "AR", "ES", "HI", "FR", "RU", "PT"].index(st.session_state["language"]),
+        index=["EN", "ID", "JP", "KR", "CN", "AR"].index(st.session_state["language"]),
     )
     st.session_state["language"] = lang
 
 CUSTOM_CSS = """
 <style>
 body {
-    background: linear-gradient(-45deg, #0f0f23, #1e3a8a, #06b6d4, #10b981, #7c3aed);
-    background-size: 400% 400%;
-    animation: aurora 20s ease infinite;
+    background: #000;
     font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    scroll-behavior: smooth;
-    position: relative;
-    overflow-x: hidden;
 }
-@keyframes aurora {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-.snow {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: -1;
-    overflow: hidden;
-}
-.snowflake {
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 50%;
-    animation: snowFall 15s linear infinite;
-}
-.snowflake:nth-child(odd) {
-    animation-duration: 12s;
-    left: 10%;
-}
-.snowflake:nth-child(even) {
-    animation-duration: 18s;
-    left: 20%;
-}
-.snowflake:nth-child(3n) {
-    left: 30%;
-    animation-duration: 14s;
-}
-.snowflake:nth-child(4n) {
-    left: 40%;
-    animation-duration: 16s;
-}
-.snowflake:nth-child(5n) {
-    left: 50%;
-    animation-duration: 20s;
-}
-.snowflake:nth-child(6n) {
-    left: 60%;
-    animation-duration: 13s;
-}
-.snowflake:nth-child(7n) {
-    left: 70%;
-    animation-duration: 17s;
-}
-.snowflake:nth-child(8n) {
-    left: 80%;
-    animation-duration: 19s;
-}
-.snowflake:nth-child(9n) {
-    left: 90%;
-    animation-duration: 11s;
-}
-@keyframes snowFall {
-    0% {
-        transform: translateY(-100vh) translateX(0) rotate(0deg);
-        opacity: 1;
-    }
-    100% {
-        transform: translateY(100vh) translateX(50px) rotate(360deg);
-        opacity: 0;
-    }
+.main-card {
+    background-color: rgba(240, 253, 250, 0.94);
+    border-radius: 24px;
+    padding: 2.0rem 2.4rem;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
 }
 .hero-card {
     background: rgba(255, 255, 255, 0.96);
-    border-radius: 28px;
+    border-radius: 14px;
     padding: 2.2rem 2.6rem;
     box-shadow: 0 24px 60px rgba(16, 185, 129, 0.35);
     border: 1px solid rgba(34, 197, 94, 0.35);
@@ -194,16 +131,6 @@ body {
     border: 1px solid rgba(34, 197, 94, 0.35);
     box-shadow: 0 10px 26px rgba(16, 185, 129, 0.30);
     margin: 0.6rem 0 0.9rem 0;
-    transition: all 0.3s ease;
-}
-.main-card {
-    background-color: rgba(240, 253, 250, 0.94);
-    border-radius: 24px;
-    padding: 2.0rem 2.4rem;
-    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
-    max-height: 80vh;
-    overflow-y: auto;
-    scroll-behavior: smooth;
 }
 .section-title {
     font-weight: 700;
@@ -214,6 +141,47 @@ body {
     font-size: 0.85rem;
     color: #047857;
     margin-bottom: 0;
+}
+.aurora-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
+}
+.aurora-layer {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at 50% 50%, rgba(0, 100, 255, 0.3) 0%, transparent 50%);
+    animation: wave 15s infinite linear;
+}
+.aurora-layer:nth-child(2) {
+    background: radial-gradient(ellipse at 30% 70%, rgba(255, 100, 0, 0.2) 0%, transparent 50%);
+    animation: wave 20s infinite linear 5s;
+}
+.aurora-layer:nth-child(3) {
+    background: radial-gradient(ellipse at 70% 30%, rgba(100, 255, 0, 0.25) 0%, transparent 50%);
+    animation: wave 25s infinite linear 10s;
+}
+@keyframes wave {
+    0% {
+        transform: scale(1) rotate(0deg) translateX(-20%) translateY(0%);
+    }
+    25% {
+        transform: scale(1.05) rotate(90deg) translateX(0%) translateY(-10%);
+    }
+    50% {
+        transform: scale(1.1) rotate(180deg) translateX(20%) translateY(0%);
+    }
+    75% {
+        transform: scale(1.05) rotate(270deg) translateX(0%) translateY(10%);
+    }
+    100% {
+        transform: scale(1) rotate(360deg) translateX(-20%) translateY(0%);
+    }
 }
 </style>
 """
@@ -239,14 +207,11 @@ if st.session_state["dark_mode"]:
         unsafe_allow_html=True,
     )
 
-codes = ["EN", "ID", "JP", "KR", "CN", "AR", "ES", "HI", "FR", "RU", "PT"]
-lang_names = ["English", "Indonesian", "Japanese", "Korean", "Chinese", "Arabic", "Spanish", "Hindi", "French", "Russian", "Portuguese"]
-
 # --------------------------- MULTI-LANGUAGE TEXTS ---------------------------
 TEXTS = {
     "EN": {
-        "title": "📊 Survey Data Analysis",
-        "subtitle": "Upload your survey file (CSV/Excel) and explore descriptive statistics, visualizations, and correlation tests interactively.",
+        "title": "📊 Digital Payment Usage & Financial Discipline Survey",
+        "subtitle": "survey data analysis",
         "upload_subheader": "📁 Upload Survey Data",
         "upload_label": "Drag & drop file here or click to browse (CSV, XLS, XLSX)",
         "data_preview": "Data Preview (up to first 1000 rows)",
@@ -317,43 +282,38 @@ TEXTS = {
         "pdf_section_corr": "6. Correlation Analysis",
         "pdf_section_text": "7. Text Analysis - Top Words",
         "pdf_notext": "No text data to analyze.",
-        "no_file": "Please upload a file to get started.",
-        "filter_header": "Filter data (optional)",
-        "filter_subtitle": "Filter and view up to the first 1000 rows of survey data.",
+        "filter_data_optional": "Filter data (optional)",
+        "filter_column": "Filter column",
         "no_filter": "(No filter)",
         "select_values": "Select values",
-        "statistic_label": "Statistic:",
-        "p_value_label": "p-value:",
+        "summary_normality": "Summary & Normality",
+        "distribution": "Distribution",
+        "select_column_distribution": "Select column for distribution",
         "normality_test": "Normality test (D’Agostino-Pearson)",
+        "statistic": "Statistic",
         "deviate_normal": "Data deviate significantly from normal distribution (reject H0 at α = 0.05).",
         "no_deviate_normal": "No significant deviation from normal distribution (fail to reject H0 at α = 0.05).",
         "not_enough_normality": "Not enough data points for normality test (need at least 8 non-missing values).",
-        "select_column_distribution": "Select column for distribution",
-        "no_cat_bar": "No categorical columns for bar chart.",
+        "histogram_boxplot": "Histogram / Boxplot",
+        "scatter_bar": "Scatter & Bar",
         "x_variable_numeric": "X variable (numeric)",
         "y_variable_numeric": "Y variable (numeric)",
+        "scatter_plot": "Scatter plot",
         "not_enough_scatter": "Not enough valid data for scatter plot.",
         "need_2_numeric": "Need at least 2 numeric columns for scatter plot.",
-        "cat_column_bar": "Categorical column for bar chart",
-        "bar_chart_top20": "Bar chart (top 20)",
+        "categorical_bar": "Categorical column for bar chart",
+        "bar_chart": "Bar chart (top 20)",
+        "no_categorical_bar": "No categorical columns for bar chart.",
         "independent_variable": "Independent variable",
         "dependent_variable": "Dependent variable",
         "observed": "Observed",
         "expected": "Expected",
-        "pdf_success": "PDF generated successfully!",
-        "group_title": "👥 Group 5: Digital Payment & Financial Discipline",
-        "upload_limit": "Limit 200MB • CSV, XLS, XLSX",
-        "upload_file_label": "Upload survey file",
-    "download_pdf": "Download PDF",
-    "tab_summary_normality": "Summary & Normality",
-    "tab_distribution": "Distribution",
-    "tab_hist_box": "Histogram / Boxplot",
-    "tab_scatter_bar": "Scatter & Bar",
-    "filter_column": "Filter column",
+        "no_file": "Please upload a file to get started.",
+        "data_preview_subtitle": "survey data analysis",
     },
     "ID": {
-        "title": "📊 Analisis Data Survei",
-        "subtitle": "Unggah file survei (CSV/Excel) dan jelajahi statistik deskriptif, visualisasi, serta uji korelasi secara interaktif.",
+        "title": "📊 Digital Payment Usage & Financial Discipline Survey",
+        "subtitle": "survey data analysis",
         "upload_subheader": "📁 Unggah Data Survei",
         "upload_label": "Tarik & letakkan file di sini atau klik untuk memilih (CSV, XLS, XLSX)",
         "data_preview": "Pratinjau Data (maksimal 1000 baris pertama)",
@@ -426,8 +386,8 @@ TEXTS = {
         "pdf_notext": "Tidak ada data teks untuk dianalisis.",
     },
     "JP": {  # Japanese
-        "title": "📊 アンケートデータ分析",
-        "subtitle": "アンケートファイル（CSV/Excel）をアップロードして、記述統計・可視化・相関テストをインタラクティブに確認できます。",
+        "title": "📊 Digital Payment Usage & Financial Discipline Survey",
+        "subtitle": "survey data analysis",
         "upload_subheader": "📁 アンケートデータのアップロード",
         "upload_label": "ここにファイルをドラッグ＆ドロップ、またはクリックして選択（CSV, XLS, XLSX）",
         "data_preview": "データプレビュー（先頭1000行まで）",
@@ -500,8 +460,8 @@ TEXTS = {
         "pdf_notext": "分析できるテキストデータがありません。",
     },
     "KR": {  # Korean
-        "title": "📊 설문 데이터 분석",
-        "subtitle": "설문 파일(CSV/Excel)을 업로드하고 기술통계, 시각화, 상관분석을 인터랙티브하게 탐색할 수 있습니다.",
+        "title": "📊 Digital Payment Usage & Financial Discipline Survey",
+        "subtitle": "survey data analysis",
         "upload_subheader": "📁 설문 데이터 업로드",
         "upload_label": "여기에 파일을 드래그 앤 드롭하거나 클릭하여 선택하세요 (CSV, XLS, XLSX)",
         "data_preview": "데이터 미리보기 (최대 첫 1000행)",
@@ -574,8 +534,8 @@ TEXTS = {
         "pdf_notext": "분석할 텍스트 데이터가 없습니다.",
     },
     "CN": {  # Chinese (Simplified)
-        "title": "📊 问卷数据分析",
-        "subtitle": "上传问卷文件（CSV/Excel），交互式地查看描述性统计、可视化和相关性检验。",
+        "title": "📊 Digital Payment Usage & Financial Discipline Survey",
+        "subtitle": "survey data analysis",
         "upload_subheader": "📁 上传问卷数据",
         "upload_label": "将文件拖放到此处或点击选择（CSV, XLS, XLSX）",
         "data_preview": "数据预览（前 1000 行）",
@@ -648,8 +608,8 @@ TEXTS = {
         "pdf_notext": "没有可供分析的文本数据。",
     },
     "AR": {  # Arabic
-        "title": "📊 تحليل بيانات الاستبيان",
-        "subtitle": "قم برفع ملف الاستبيان (CSV/Excel) لاستكشاف الإحصاءات الوصفية والرسوم البيانية واختبارات الارتباط بطريقة تفاعلية.",
+        "title": "📊 Digital Payment Usage & Financial Discipline Survey",
+        "subtitle": "survey data analysis",
         "upload_subheader": "📁 رفع بيانات الاستبيان",
         "upload_label": "اسحب وأفلت الملف هنا أو اضغط للاختيار (CSV, XLS, XLSX)",
         "data_preview": "معاينة البيانات (حتى أول 1000 صف)",
@@ -719,519 +679,10 @@ TEXTS = {
         "pdf_section_catfreq": "٥. المتغيرات الفئوية - جداول التكرار",
         "pdf_section_corr": "٦. تحليل الارتباط",
         "pdf_section_text": "٧. تحليل النص - أهم الكلمات",
-    "pdf_notext": "لا توجد بيانات نصية للتحليل.",
-    },
-    "ES": {  # Spanish
-        "title": "📊 Análisis de Datos de Encuesta",
-        "subtitle": "Sube tu archivo de encuesta (CSV/Excel) y explora estadísticas descriptivas, visualizaciones y pruebas de correlación de manera interactiva.",
-        "upload_subheader": "📁 Subir Datos de Encuesta",
-        "upload_label": "Arrastra y suelta el archivo aquí o haz clic para seleccionar (CSV, XLS, XLSX)",
-        "data_preview": "Vista Previa de Datos (hasta las primeras 1000 filas)",
-        "text_processing_subheader": "📝 Preprocesamiento de Texto",
-        "text_columns_detected": "Columnas de texto detectadas:",
-        "select_text_col": "Selecciona una columna de texto para procesar",
-        "no_text_columns": "No se detectaron columnas de tipo texto.",
-        "text_processing_note": "El texto se convertirá a minúsculas, se eliminarán signos de puntuación, se tokenizará (dividido por espacios) y se eliminarán palabras vacías en inglés.",
-        "sample_tokens": "Muestra de tokens procesados",
-        "top_words": "Top 10 Palabras por Frecuencia",
-        "stats_subheader": "📈 Estadísticas Descriptivas y Distribución",
-        "select_numeric_col": "Selecciona una columna numérica para estadísticas y gráficos",
-        "no_numeric_cols": "No hay columnas numéricas disponibles.",
-        "desc_stats": "Estadísticas descriptivas para la columna seleccionada",
-        "freq_table_subheader": "📊 Tabla de Frecuencia Categórica",
-        "select_categorical_col": "Selecciona una columna categórica para tabla de frecuencia",
-        "no_categorical_cols": "No hay columnas categóricas disponibles.",
-        "freq_count": "Conteo",
-        "freq_percent": "Porcentaje (%)",
-        "visual_subheader": "📉 Visualizaciones de Datos",
-        "histogram": "Histograma",
-        "boxplot": "Diagrama de Caja",
-        "correlation_subheader": "🔗 Correlación y Pruebas Estadísticas",
-        "pearson_header": "Correlación de Pearson",
-        "spearman_header": "Correlación de Spearman",
-        "chi_header": "Prueba Chi-cuadrado",
-        "select_x_numeric": "Selecciona variable X (numérica)",
-        "select_y_numeric": "Selecciona variable Y (numérica)",
-        "not_enough_numeric": "No hay suficientes columnas numéricas para este análisis.",
-        "pearson_result": "Resultado de Correlación de Pearson",
-        "spearman_result": "Resultado de Correlación de Spearman",
-        "corr_coef": "Coeficiente de correlación (r)",
-        "p_value": "valor p",
-        "interpretation": "Interpretación",
-        "select_x_cat": "Selecciona variable X (categórica)",
-        "select_y_cat": "Selecciona variable Y (categórica)",
-        "not_enough_categorical": "No hay suficientes columnas categóricas para la prueba Chi-cuadrado.",
-        "chi_square_result": "Resultado de Prueba Chi-cuadrado",
-        "chi_square_stat": "Estadístico Chi-cuadrado",
-        "chi_square_df": "Grados de libertad (df)",
-        "chi_square_p": "valor p",
-        "alpha_note": "Significancia probada en α = 0.05.",
-        "significant_assoc": "Hay una asociación estadísticamente significativa entre las dos variables.",
-        "no_significant_assoc": "No hay una asociación estadísticamente significativa entre las dos variables.",
-        "corr_direction_positive": "Relación positiva: a medida que X aumenta, Y tiende a aumentar.",
-        "corr_direction_negative": "Relación negativa: a medida que X aumenta, Y tiende a disminuir.",
-        "corr_direction_zero": "No hay dirección clara de relación (cerca de cero).",
-        "corr_strength_none": "Casi no hay relación.",
-        "corr_strength_weak": "Relación débil.",
-        "corr_strength_moderate": "Relación moderada.",
-        "corr_strength_strong": "Relación fuerte.",
-        "warning_select_valid": "Por favor selecciona una combinación válida de columnas.",
-        "header_github": "Fork en GitHub",
-        "nav_desc": "Estadísticas Descriptivas",
-        "nav_visual": "Visualizaciones",
-        "nav_corr": "Correlaciones y Pruebas",
-        "nav_text": "Procesamiento de Texto",
-        "export_title": "Exportar Reporte",
-        "export_desc": "Genera un PDF completo con todas las estadísticas descriptivas, prueba de normalidad, histogramas, diagramas de caja, correlaciones y resumen de análisis de texto.",
-        "export_button": "Generar reporte PDF",
-        "export_filename": "reporte_encuesta_completo.pdf",
-        "pdf_title": "Reporte Completo de Datos de Encuesta",
-        "pdf_section_numdist": "1. Variables Numéricas - Distribuciones",
-        "pdf_section_scatter": "2. Gráficos de Dispersión - Relaciones",
-        "pdf_section_catbar": "3. Variables Categóricas - Gráficos de Barras",
-        "pdf_section_numfull": "4. Variables Numéricas - Estadísticas Completas",
-        "pdf_section_catfreq": "5. Variables Categóricas - Tablas de Frecuencia",
-        "pdf_section_corr": "6. Análisis de Correlación",
-        "pdf_section_text": "7. Análisis de Texto - Palabras Más Frecuentes",
-        "pdf_notext": "No hay datos de texto para analizar.",
-        "no_file": "Por favor sube un archivo para comenzar.",
-        "filter_header": "Filtrar datos (opcional)",
-        "filter_subtitle": "Filtra y visualiza hasta las primeras 1000 filas de datos de encuesta.",
-        "no_filter": "(Sin filtro)",
-        "select_values": "Seleccionar valores",
-        "statistic_label": "Estadístico:",
-        "p_value_label": "valor p:",
-        "normality_test": "Prueba de normalidad (D’Agostino-Pearson)",
-        "deviate_normal": "Los datos se desvían significativamente de la distribución normal (rechazar H0 en α = 0.05).",
-        "no_deviate_normal": "No hay desviación significativa de la distribución normal (no rechazar H0 en α = 0.05).",
-        "not_enough_normality": "No hay suficientes puntos de datos para la prueba de normalidad (se necesitan al menos 8 valores no faltantes).",
-        "select_column_distribution": "Seleccionar columna para distribución",
-        "no_cat_bar": "No hay columnas categóricas para gráfico de barras.",
-        "x_variable_numeric": "Variable X (numérica)",
-        "y_variable_numeric": "Variable Y (numérica)",
-        "not_enough_scatter": "No hay suficientes datos válidos para gráfico de dispersión.",
-        "need_2_numeric": "Se necesitan al menos 2 columnas numéricas para gráfico de dispersión.",
-        "cat_column_bar": "Columna categórica para gráfico de barras",
-        "bar_chart_top20": "Gráfico de barras (top 20)",
-        "independent_variable": "Variable independiente",
-        "dependent_variable": "Variable dependiente",
-        "observed": "Observado",
-        "expected": "Esperado",
-        "pdf_success": "PDF generado exitosamente!",
-        "group_title": "👥 Grupo 5: Pago Digital y Disciplina Financiera",
-        "upload_limit": "Límite 200MB • CSV, XLS, XLSX",
-        "upload_file_label": "Subir archivo de encuesta",
-        "download_pdf": "Descargar PDF",
-    },
-    "HI": {  # Hindi
-        "title": "📊 सर्वेक्षण डेटा विश्लेषण",
-        "subtitle": "अपनी सर्वेक्षण फ़ाइल अपलोड करें (CSV/Excel) और वर्णनात्मक सांख्यिकी, विज़ुअलाइज़ेशन और सहसंबंध परीक्षणों का इंटरैक्टिव रूप से अन्वेषण करें।",
-        "upload_subheader": "📁 सर्वेक्षण डेटा अपलोड करें",
-        "upload_label": "यहाँ फ़ाइल खींचें और छोड़ें या चुनने के लिए क्लिक करें (CSV, XLS, XLSX)",
-        "data_preview": "डेटा पूर्वावलोकन (पहली 1000 पंक्तियों तक)",
-        "text_processing_subheader": "📝 टेक्स्ट प्रीप्रोसेसिंग",
-        "text_columns_detected": "टेक्स्ट कॉलम का पता चला:",
-        "select_text_col": "प्रोसेस करने के लिए एक टेक्स्ट कॉलम चुनें",
-        "no_text_columns": "टेक्स्ट प्रकार के कॉलम नहीं मिले।",
-        "text_processing_note": "टेक्स्ट को लोअरकेस में परिवर्तित किया जाएगा, विराम चिह्न हटाए जाएंगे, टोकनाइज़ किया जाएगा (रिक्त स्थान द्वारा विभाजित), और अंग्रेजी स्टॉपवर्ड हटाए जाएंगे।",
-        "sample_tokens": "प्रोसेस किए गए टोकन का नमूना",
-        "top_words": "फ्रिक्वेंसी द्वारा शीर्ष 10 शब्द",
-        "stats_subheader": "📈 वर्णनात्मक सांख्यिकी और वितरण",
-        "select_numeric_col": "सांख्यिकी और ग्राफ़ के लिए एक संख्यात्मक कॉलम चुनें",
-        "no_numeric_cols": "कोई संख्यात्मक कॉलम उपलब्ध नहीं।",
-        "desc_stats": "चयनित कॉलम के लिए वर्णनात्मक सांख्यिकी",
-        "freq_table_subheader": "📊 श्रेणीबद्ध फ़्रिक्वेंसी तालिका",
-        "select_categorical_col": "फ़्रिक्वेंसी तालिका के लिए एक श्रेणीबद्ध कॉलम चुनें",
-        "no_categorical_cols": "कोई श्रेणीबद्ध कॉलम उपलब्ध नहीं।",
-        "freq_count": "गिनती",
-        "freq_percent": "प्रतिशत (%)",
-        "visual_subheader": "📉 डेटा विज़ुअलाइज़ेशन",
-        "histogram": "हिस्टोग्राम",
-        "boxplot": "बॉक्सप्लॉट",
-        "correlation_subheader": "🔗 सहसंबंध और सांख्यिकीय परीक्षण",
-        "pearson_header": "पियर्सन सहसंबंध",
-        "spearman_header": "स्पीयरमैन रैंक सहसंबंध",
-        "chi_header": "काई-स्क्वेयर परीक्षण",
-        "select_x_numeric": "X चर चुनें (संख्यात्मक)",
-        "select_y_numeric": "Y चर चुनें (संख्यात्मक)",
-        "not_enough_numeric": "इस विश्लेषण के लिए पर्याप्त संख्यात्मक कॉलम नहीं हैं।",
-        "pearson_result": "पियर्सन सहसंबंध परिणाम",
-        "spearman_result": "स्पीयरमैन सहसंबंध परिणाम",
-        "corr_coef": "सहसंबंध गुणांक (r)",
-        "p_value": "p-मान",
-        "interpretation": "व्याख्या",
-        "select_x_cat": "X चर चुनें (श्रेणीबद्ध)",
-        "select_y_cat": "Y चर चुनें (श्रेणीबद्ध)",
-        "not_enough_categorical": "काई-स्क्वेयर परीक्षण के लिए पर्याप्त श्रेणीबद्ध कॉलम नहीं हैं।",
-        "chi_square_result": "काई-स्क्वेयर परीक्षण परिणाम",
-        "chi_square_stat": "काई-स्क्वेयर सांख्यिकी",
-        "chi_square_df": "स्वतंत्रता की डिग्री (df)",
-        "chi_square_p": "p-मान",
-        "alpha_note": "α = 0.05 पर महत्व परीक्षण किया गया।",
-        "significant_assoc": "दोनों चरों के बीच सांख्यिकीय रूप से महत्वपूर्ण संबंध है।",
-        "no_significant_assoc": "दोनों चरों के बीच सांख्यिकीय रूप से महत्वपूर्ण संबंध नहीं है।",
-        "corr_direction_positive": "सकारात्मक संबंध: X बढ़ने पर Y बढ़ने की प्रवृत्ति है।",
-        "corr_direction_negative": "नकारात्मक संबंध: X बढ़ने पर Y घटने की प्रवृत्ति है।",
-        "corr_direction_zero": "संबंध की स्पष्ट दिशा नहीं (शून्य के निकट)।",
-        "corr_strength_none": "लगभग कोई संबंध नहीं।",
-        "corr_strength_weak": "कमजोर संबंध।",
-        "corr_strength_moderate": "मध्यम संबंध।",
-        "corr_strength_strong": "मजबूत संबंध।",
-        "warning_select_valid": "कृपया कॉलम का एक वैध संयोजन चुनें।",
-        "header_github": "GitHub पर Fork",
-        "nav_desc": "वर्णनात्मक सांख्यिकी",
-        "nav_visual": "विज़ुअलाइज़ेशन",
-        "nav_corr": "सहसंबंध और परीक्षण",
-        "nav_text": "टेक्स्ट प्रोसेसिंग",
-        "export_title": "रिपोर्ट निर्यात करें",
-        "export_desc": "सभी वर्णनात्मक सांख्यिकी, सामान्यता परीक्षण, हिस्टोग्राम, बॉक्सप्लॉट, सहसंबंध और टेक्स्ट विश्लेषण सारांश के साथ एक पूर्ण PDF उत्पन्न करें।",
-        "export_button": "PDF रिपोर्ट उत्पन्न करें",
-        "export_filename": "survey_full_report_hi.pdf",
-        "pdf_title": "सर्वेक्षण डेटा पूर्ण रिपोर्ट",
-        "pdf_section_numdist": "1. संख्यात्मक चर - वितरण",
-        "pdf_section_scatter": "2. स्कैटर प्लॉट - संबंध",
-        "pdf_section_catbar": "3. श्रेणीबद्ध चर - बार चार्ट",
-        "pdf_section_numfull": "4. संख्यात्मक चर - पूर्ण सांख्यिकी",
-        "pdf_section_catfreq": "5. श्रेणीबद्ध चर - फ़्रिक्वेंसी तालिकाएँ",
-        "pdf_section_corr": "6. सहसंबंध विश्लेषण",
-        "pdf_section_text": "7. टेक्स्ट विश्लेषण - शीर्ष शब्द",
-        "pdf_notext": "विश्लेषण के लिए कोई टेक्स्ट डेटा नहीं।",
-        "no_file": "शुरू करने के लिए कृपया एक फ़ाइल अपलोड करें।",
-        "filter_header": "डेटा फ़िल्टर करें (वैकल्पिक)",
-        "filter_subtitle": "सर्वेक्षण डेटा की पहली 1000 पंक्तियों तक फ़िल्टर और देखें।",
-        "no_filter": "(कोई फ़िल्टर नहीं)",
-        "select_values": "मान चुनें",
-        "statistic_label": "सांख्यिकी:",
-        "p_value_label": "p-मान:",
-        "normality_test": "सामान्यता परीक्षण (D’Agostino-Pearson)",
-        "deviate_normal": "डेटा सामान्य वितरण से महत्वपूर्ण रूप से विचलित है (α = 0.05 पर H0 अस्वीकार करें)।",
-        "no_deviate_normal": "सामान्य वितरण से कोई महत्वपूर्ण विचलन नहीं (α = 0.05 पर H0 अस्वीकार न करें)।",
-        "not_enough_normality": "सामान्यता परीक्षण के लिए पर्याप्त डेटा बिंदु नहीं (कम से कम 8 गैर-लापता मान चाहिए)।",
-        "select_column_distribution": "वितरण के लिए कॉलम चुनें",
-        "no_cat_bar": "बार चार्ट के लिए कोई श्रेणीबद्ध कॉलम नहीं।",
-        "x_variable_numeric": "X चर (संख्यात्मक)",
-        "y_variable_numeric": "Y चर (संख्यात्मक)",
-        "not_enough_scatter": "स्कैटर प्लॉट के लिए पर्याप्त वैध डेटा नहीं।",
-        "need_2_numeric": "स्कैटर प्लॉट के लिए कम से कम 2 संख्यात्मक कॉलम चाहिए।",
-        "cat_column_bar": "बार चार्ट के लिए श्रेणीबद्ध कॉलम",
-        "bar_chart_top20": "बार चार्ट (शीर्ष 20)",
-        "independent_variable": "स्वतंत्र चर",
-        "dependent_variable": "आश्रित चर",
-        "observed": "अवलोकित",
-        "expected": "अपेक्षित",
-        "pdf_success": "PDF सफलतापूर्वक उत्पन्न हुआ!",
-        "group_title": "👥 समूह 5: डिजिटल भुगतान और वित्तीय अनुशासन",
-        "upload_limit": "सीमा 200MB • CSV, XLS, XLSX",
-        "upload_file_label": "सर्वेक्षण फ़ाइल अपलोड करें",
-        "download_pdf": "PDF डाउनलोड करें",
-    },
-    "FR": {  # French
-        "title": "📊 Analyse des Données de Sondage",
-        "subtitle": "Téléchargez votre fichier de sondage (CSV/Excel) et explorez les statistiques descriptives, visualisations et tests de corrélation de manière interactive.",
-        "upload_subheader": "📁 Télécharger les Données de Sondage",
-        "upload_label": "Glissez-déposez le fichier ici ou cliquez pour sélectionner (CSV, XLS, XLSX)",
-        "data_preview": "Aperçu des Données (jusqu'aux 1000 premières lignes)",
-        "text_processing_subheader": "📝 Prétraitement du Texte",
-        "text_columns_detected": "Colonnes de texte détectées :",
-        "select_text_col": "Sélectionnez une colonne de texte à traiter",
-        "no_text_columns": "Aucune colonne de type texte détectée.",
-        "text_processing_note": "Le texte sera mis en minuscules, la ponctuation supprimée, tokenisé (divisé par espaces), et les mots vides anglais supprimés.",
-        "sample_tokens": "Échantillon de tokens traités",
-        "top_words": "Top 10 Mots par Fréquence",
-        "stats_subheader": "📈 Statistiques Descriptives et Distribution",
-        "select_numeric_col": "Sélectionnez une colonne numérique pour les statistiques et graphiques",
-        "no_numeric_cols": "Aucune colonne numérique disponible.",
-        "desc_stats": "Statistiques descriptives pour la colonne sélectionnée",
-        "freq_table_subheader": "📊 Table de Fréquence Catégorielle",
-        "select_categorical_col": "Sélectionnez une colonne catégorielle pour la table de fréquence",
-        "no_categorical_cols": "Aucune colonne catégorielle disponible.",
-        "freq_count": "Comptage",
-        "freq_percent": "Pourcentage (%)",
-        "visual_subheader": "📉 Visualisations des Données",
-        "histogram": "Histogramme",
-        "boxplot": "Boîte à Moustaches",
-        "correlation_subheader": "🔗 Corrélation et Tests Statistiques",
-        "pearson_header": "Corrélation de Pearson",
-        "spearman_header": "Corrélation de Spearman",
-        "chi_header": "Test Chi-carré",
-        "select_x_numeric": "Sélectionnez la variable X (numérique)",
-        "select_y_numeric": "Sélectionnez la variable Y (numérique)",
-        "not_enough_numeric": "Pas assez de colonnes numériques pour cette analyse.",
-        "pearson_result": "Résultat de Corrélation de Pearson",
-        "spearman_result": "Résultat de Corrélation de Spearman",
-        "corr_coef": "Coefficient de corrélation (r)",
-        "p_value": "valeur p",
-        "interpretation": "Interprétation",
-        "select_x_cat": "Sélectionnez la variable X (catégorielle)",
-        "select_y_cat": "Sélectionnez la variable Y (catégorielle)",
-        "not_enough_categorical": "Pas assez de colonnes catégorielles pour le test Chi-carré.",
-        "chi_square_result": "Résultat du Test Chi-carré",
-        "chi_square_stat": "Statistique Chi-carré",
-        "chi_square_df": "Degrés de liberté (df)",
-        "chi_square_p": "valeur p",
-        "alpha_note": "Significativité testée à α = 0.05.",
-        "significant_assoc": "Il y a une association statistiquement significative entre les deux variables.",
-        "no_significant_assoc": "Il n'y a pas d'association statistiquement significative entre les deux variables.",
-        "corr_direction_positive": "Relation positive : lorsque X augmente, Y tend à augmenter.",
-        "corr_direction_negative": "Relation négative : lorsque X augmente, Y tend à diminuer.",
-        "corr_direction_zero": "Pas de direction claire de relation (proche de zéro).",
-        "corr_strength_none": "Presque pas de relation.",
-        "corr_strength_weak": "Relation faible.",
-        "corr_strength_moderate": "Relation modérée.",
-        "corr_strength_strong": "Relation forte.",
-        "warning_select_valid": "Veuillez sélectionner une combinaison valide de colonnes.",
-        "header_github": "Fork sur GitHub",
-        "nav_desc": "Statistiques Descriptives",
-        "nav_visual": "Visualisations",
-        "nav_corr": "Corrélations et Tests",
-        "nav_text": "Traitement du Texte",
-        "export_title": "Exporter le Rapport",
-        "export_desc": "Générez un PDF complet avec toutes les statistiques descriptives, test de normalité, histogrammes, boîtes à moustaches, corrélations et résumé d'analyse de texte.",
-        "export_button": "Générer le rapport PDF",
-        "export_filename": "rapport_sondage_complet.pdf",
-        "pdf_title": "Rapport Complet des Données de Sondage",
-        "pdf_section_numdist": "1. Variables Numériques - Distributions",
-        "pdf_section_scatter": "2. Nuages de Points - Relations",
-        "pdf_section_catbar": "3. Variables Catégorielles - Graphiques à Barres",
-        "pdf_section_numfull": "4. Variables Numériques - Statistiques Complètes",
-        "pdf_section_catfreq": "5. Variables Catégorielles - Tables de Fréquence",
-        "pdf_section_corr": "6. Analyse de Corrélation",
-        "pdf_section_text": "7. Analyse de Texte - Mots les Plus Fréquents",
-        "pdf_notext": "Pas de données texte à analyser.",
-        "no_file": "Veuillez télécharger un fichier pour commencer.",
-        "filter_header": "Filtrer les données (optionnel)",
-        "filter_subtitle": "Filtrez et visualisez jusqu'aux 1000 premières lignes des données de sondage.",
-        "no_filter": "(Aucun filtre)",
-        "select_values": "Sélectionner les valeurs",
-        "statistic_label": "Statistique :",
-        "p_value_label": "valeur p :",
-        "normality_test": "Test de normalité (D’Agostino-Pearson)",
-        "deviate_normal": "Les données dévient significativement de la distribution normale (rejeter H0 à α = 0.05).",
-        "no_deviate_normal": "Pas de déviation significative de la distribution normale (ne pas rejeter H0 à α = 0.05).",
-        "not_enough_normality": "Pas assez de points de données pour le test de normalité (besoin d'au moins 8 valeurs non manquantes).",
-        "select_column_distribution": "Sélectionner la colonne pour la distribution",
-        "no_cat_bar": "Pas de colonnes catégorielles pour le graphique à barres.",
-        "x_variable_numeric": "Variable X (numérique)",
-        "y_variable_numeric": "Variable Y (numérique)",
-        "not_enough_scatter": "Pas assez de données valides pour le nuage de points.",
-        "need_2_numeric": "Besoin d'au moins 2 colonnes numériques pour le nuage de points.",
-        "cat_column_bar": "Colonne catégorielle pour le graphique à barres",
-        "bar_chart_top20": "Graphique à barres (top 20)",
-        "independent_variable": "Variable indépendante",
-        "dependent_variable": "Variable dépendante",
-        "observed": "Observé",
-        "expected": "Attendu",
-        "pdf_success": "PDF généré avec succès !",
-        "group_title": "👥 Groupe 5 : Paiement Numérique et Discipline Financière",
-        "upload_limit": "Limite 200MB • CSV, XLS, XLSX",
-        "upload_file_label": "Télécharger le fichier de sondage",
-        "download_pdf": "Télécharger PDF",
-    },
-    "RU": {  # Russian
-        "title": "📊 Анализ Данных Опроса",
-        "subtitle": "Загрузите файл опроса (CSV/Excel) и интерактивно исследуйте описательную статистику, визуализации и тесты корреляции.",
-        "upload_subheader": "📁 Загрузить Данные Опроса",
-        "upload_label": "Перетащите файл сюда или нажмите для выбора (CSV, XLS, XLSX)",
-        "data_preview": "Предварительный Просмотр Данных (до первых 1000 строк)",
-        "text_processing_subheader": "📝 Предварительная Обработка Текста",
-        "text_columns_detected": "Обнаруженные текстовые столбцы:",
-        "select_text_col": "Выберите текстовый столбец для обработки",
-        "no_text_columns": "Столбцы текстового типа не обнаружены.",
-        "text_processing_note": "Текст будет приведен к нижнему регистру, удалена пунктуация, токенизирован (разделен пробелами) и удалены английские стоп-слова.",
-        "sample_tokens": "Образец обработанных токенов",
-        "top_words": "Топ 10 Слов по Частоте",
-        "stats_subheader": "📈 Описательная Статистика и Распределение",
-        "select_numeric_col": "Выберите числовой столбец для статистики и графиков",
-        "no_numeric_cols": "Нет доступных числовых столбцов.",
-        "desc_stats": "Описательная статистика для выбранного столбца",
-        "freq_table_subheader": "📊 Таблица Частот Категориальных Данных",
-        "select_categorical_col": "Выберите категориальный столбец для таблицы частот",
-        "no_categorical_cols": "Нет доступных категориальных столбцов.",
-        "freq_count": "Количество",
-        "freq_percent": "Процент (%)",
-        "visual_subheader": "📉 Визуализации Данных",
-        "histogram": "Гистограмма",
-        "boxplot": "Коробчатая Диаграмма",
-        "correlation_subheader": "🔗 Корреляция и Статистические Тесты",
-        "pearson_header": "Корреляция Пирсона",
-        "spearman_header": "Ранговая Корреляция Спирмена",
-        "chi_header": "Тест Хи-квадрат",
-        "select_x_numeric": "Выберите переменную X (числовая)",
-        "select_y_numeric": "Выберите переменную Y (числовая)",
-        "not_enough_numeric": "Недостаточно числовых столбцов для этого анализа.",
-        "pearson_result": "Результат Корреляции Пирсона",
-        "spearman_result": "Результат Корреляции Спирмена",
-        "corr_coef": "Коэффициент корреляции (r)",
-        "p_value": "p-значение",
-        "interpretation": "Интерпретация",
-        "select_x_cat": "Выберите переменную X (категориальная)",
-        "select_y_cat": "Выберите переменную Y (категориальная)",
-        "not_enough_categorical": "Недостаточно категориальных столбцов для теста Хи-квадрат.",
-        "chi_square_result": "Результат Теста Хи-квадрат",
-        "chi_square_stat": "Статистика Хи-квадрат",
-        "chi_square_df": "Степени свободы (df)",
-        "chi_square_p": "p-значение",
-        "alpha_note": "Значимость проверена на α = 0.05.",
-        "significant_assoc": "Есть статистически значимая связь между двумя переменными.",
-        "no_significant_assoc": "Нет статистически значимой связи между двумя переменными.",
-        "corr_direction_positive": "Положительная связь: с увеличением X Y имеет тенденцию к увеличению.",
-        "corr_direction_negative": "Отрицательная связь: с увеличением X Y имеет тенденцию к уменьшению.",
-        "corr_direction_zero": "Нет четкого направления связи (близко к нулю).",
-        "corr_strength_none": "Почти нет связи.",
-        "corr_strength_weak": "Слабая связь.",
-        "corr_strength_moderate": "Умеренная связь.",
-        "corr_strength_strong": "Сильная связь.",
-        "warning_select_valid": "Пожалуйста, выберите допустимую комбинацию столбцов.",
-        "header_github": "Fork на GitHub",
-        "nav_desc": "Описательная Статистика",
-        "nav_visual": "Визуализации",
-        "nav_corr": "Корреляции и Тесты",
-        "nav_text": "Обработка Текста",
-        "export_title": "Экспорт Отчета",
-        "export_desc": "Создайте полный PDF со всей описательной статистикой, тестом нормальности, гистограммами, коробчатыми диаграммами, корреляциями и сводкой анализа текста.",
-        "export_button": "Создать PDF отчет",
-        "export_filename": "polnyy_otchet_oprosa.pdf",
-        "pdf_title": "Полный Отчет по Данным Опроса",
-        "pdf_section_numdist": "1. Числовые Переменные - Распределения",
-        "pdf_section_scatter": "2. Диаграммы Рассеяния - Связи",
-        "pdf_section_catbar": "3. Категориальные Переменные - Столбчатые Диаграммы",
-        "pdf_section_numfull": "4. Числовые Переменные - Полная Статистика",
-        "pdf_section_catfreq": "5. Категориальные Переменные - Таблицы Частот",
-        "pdf_section_corr": "6. Анализ Корреляции",
-        "pdf_section_text": "7. Анализ Текста - Топ Слов",
-        "pdf_notext": "Нет текстовых данных для анализа.",
-        "no_file": "Пожалуйста, загрузите файл, чтобы начать.",
-        "filter_header": "Фильтровать данные (опционально)",
-        "filter_subtitle": "Фильтруйте и просматривайте до первых 1000 строк данных опроса.",
-        "no_filter": "(Без фильтра)",
-        "select_values": "Выбрать значения",
-        "statistic_label": "Статистика:",
-        "p_value_label": "p-значение:",
-        "normality_test": "Тест нормальности (D’Agostino-Pearson)",
-        "deviate_normal": "Данные значительно отклоняются от нормального распределения (отвергнуть H0 при α = 0.05).",
-        "no_deviate_normal": "Нет значительного отклонения от нормального распределения (не отвергать H0 при α = 0.05).",
-        "not_enough_normality": "Недостаточно точек данных для теста нормальности (нужно минимум 8 непропущенных значений).",
-        "select_column_distribution": "Выбрать столбец для распределения",
-        "no_cat_bar": "Нет категориальных столбцов для столбчатой диаграммы.",
-        "x_variable_numeric": "Переменная X (числовая)",
-        "y_variable_numeric": "Переменная Y (числовая)",
-        "not_enough_scatter": "Недостаточно валидных данных для диаграммы рассеяния.",
-        "need_2_numeric": "Нужно минимум 2 числовых столбца для диаграммы рассеяния.",
-        "cat_column_bar": "Категориальный столбец для столбчатой диаграммы",
-        "bar_chart_top20": "Столбчатая диаграмма (топ 20)",
-        "independent_variable": "Независимая переменная",
-        "dependent_variable": "Зависимая переменная",
-        "observed": "Наблюдаемое",
-        "expected": "Ожидаемое",
-        "pdf_success": "PDF успешно создан!",
-        "group_title": "👥 Группа 5: Цифровой Платеж и Финансовая Дисциплина",
-        "upload_limit": "Лимит 200MB • CSV, XLS, XLSX",
-        "upload_file_label": "Загрузить файл опроса",
-        "download_pdf": "Скачать PDF",
-    },
-    "PT": {  # Portuguese
-        "title": "📊 Análise de Dados de Pesquisa",
-        "subtitle": "Faça upload do seu arquivo de pesquisa (CSV/Excel) e explore estatísticas descritivas, visualizações e testes de correlação de forma interativa.",
-        "upload_subheader": "📁 Fazer Upload dos Dados da Pesquisa",
-        "upload_label": "Arraste e solte o arquivo aqui ou clique para selecionar (CSV, XLS, XLSX)",
-        "data_preview": "Visualização de Dados (até as primeiras 1000 linhas)",
-        "text_processing_subheader": "📝 Pré-processamento de Texto",
-        "text_columns_detected": "Colunas de texto detectadas:",
-        "select_text_col": "Selecione uma coluna de texto para processar",
-        "no_text_columns": "Nenhuma coluna de tipo texto detectada.",
-        "text_processing_note": "O texto será convertido para minúsculas, pontuação removida, tokenizado (dividido por espaços) e palavras vazias em inglês removidas.",
-        "sample_tokens": "Amostra de tokens processados",
-        "top_words": "Top 10 Palavras por Frequência",
-        "stats_subheader": "📈 Estatísticas Descritivas e Distribuição",
-        "select_numeric_col": "Selecione uma coluna numérica para estatísticas e gráficos",
-        "no_numeric_cols": "Nenhuma coluna numérica disponível.",
-        "desc_stats": "Estatísticas descritivas para a coluna selecionada",
-        "freq_table_subheader": "📊 Tabela de Frequência Categórica",
-        "select_categorical_col": "Selecione uma coluna categórica para tabela de frequência",
-        "no_categorical_cols": "Nenhuma coluna categórica disponível.",
-        "freq_count": "Contagem",
-        "freq_percent": "Percentagem (%)",
-        "visual_subheader": "📉 Visualizações de Dados",
-        "histogram": "Histograma",
-        "boxplot": "Diagrama de Caixa",
-        "correlation_subheader": "🔗 Correlação e Testes Estatísticos",
-        "pearson_header": "Correlação de Pearson",
-        "spearman_header": "Correlação de Spearman",
-        "chi_header": "Teste Qui-quadrado",
-        "select_x_numeric": "Selecione variável X (numérica)",
-        "select_y_numeric": "Selecione variável Y (numérica)",
-        "not_enough_numeric": "Não há colunas numéricas suficientes para esta análise.",
-        "pearson_result": "Resultado da Correlação de Pearson",
-        "spearman_result": "Resultado da Correlação de Spearman",
-        "corr_coef": "Coeficiente de correlação (r)",
-        "p_value": "valor p",
-        "interpretation": "Interpretação",
-        "select_x_cat": "Selecione variável X (categórica)",
-        "select_y_cat": "Selecione variável Y (categórica)",
-        "not_enough_categorical": "Não há colunas categóricas suficientes para o teste Qui-quadrado.",
-        "chi_square_result": "Resultado do Teste Qui-quadrado",
-        "chi_square_stat": "Estatística Qui-quadrado",
-        "chi_square_df": "Graus de liberdade (df)",
-        "chi_square_p": "valor p",
-        "alpha_note": "Significância testada em α = 0,05.",
-        "significant_assoc": "Há uma associação estatisticamente significativa entre as duas variáveis.",
-        "no_significant_assoc": "Não há associação estatisticamente significativa entre as duas variáveis.",
-        "corr_direction_positive": "Relação positiva: à medida que X aumenta, Y tende a aumentar.",
-        "corr_direction_negative": "Relação negativa: à medida que X aumenta, Y tende a diminuir.",
-        "corr_direction_zero": "Nenhuma direção clara de relação (próxima de zero).",
-        "corr_strength_none": "Praticamente nenhuma relação.",
-        "corr_strength_weak": "Relação fraca.",
-        "corr_strength_moderate": "Relação moderada.",
-        "corr_strength_strong": "Relação forte.",
-        "warning_select_valid": "Por favor, selecione uma combinação válida de colunas.",
-        "header_github": "Fork no GitHub",
-        "nav_desc": "Estatísticas Descritivas",
-        "nav_visual": "Visualizações",
-        "nav_corr": "Correlações e Testes",
-        "nav_text": "Processamento de Texto",
-        "export_title": "Exportar Relatório",
-        "export_desc": "Gerar um PDF completo com todas as estatísticas descritivas, teste de normalidade, histogramas, boxplots, correlações e resumo de análise de texto.",
-        "export_button": "Gerar relatório PDF",
-        "export_filename": "relatorio_pesquisa_completo.pdf",
-        "pdf_title": "Relatório Completo de Dados de Pesquisa",
-        "pdf_section_numdist": "1. Variáveis Numéricas - Distribuições",
-        "pdf_section_scatter": "2. Gráficos de Dispersão - Relações",
-        "pdf_section_catbar": "3. Variáveis Categóricas - Gráficos de Barras",
-        "pdf_section_numfull": "4. Variáveis Numéricas - Estatísticas Completas",
-        "pdf_section_catfreq": "5. Variáveis Categóricas - Tabelas de Frequência",
-        "pdf_section_corr": "6. Análise de Correlação",
-        "pdf_section_text": "7. Análise de Texto - Palavras Principais",
-        "pdf_notext": "Nenhum dado de texto para analisar.",
-        "no_file": "Por favor, faça upload de um arquivo para começar.",
-        "filter_header": "Filtrar dados (opcional)",
-        "filter_subtitle": "Filtrar e visualizar até as primeiras 1000 linhas de dados de pesquisa.",
-        "no_filter": "(Sem filtro)",
-        "select_values": "Selecionar valores",
-        "statistic_label": "Estatística:",
-        "p_value_label": "valor p:",
-        "normality_test": "Teste de normalidade (D’Agostino-Pearson)",
-        "deviate_normal": "Os dados desviam significativamente da distribuição normal (rejeitar H0 em α = 0,05).",
-        "no_deviate_normal": "Nenhum desvio significativo da distribuição normal (não rejeitar H0 em α = 0,05).",
-        "not_enough_normality": "Pontos de dados insuficientes para o teste de normalidade (precisa de pelo menos 8 valores não faltantes).",
-        "select_column_distribution": "Selecionar coluna para distribuição",
-        "no_cat_bar": "Nenhuma coluna categórica para gráfico de barras.",
-        "x_variable_numeric": "Variável X (numérica)",
-        "y_variable_numeric": "Variável Y (numérica)",
-        "not_enough_scatter": "Dados válidos insuficientes para gráfico de dispersão.",
-        "need_2_numeric": "Precisa de pelo menos 2 colunas numéricas para gráfico de dispersão.",
-        "cat_column_bar": "Coluna categórica para gráfico de barras",
-        "bar_chart_top20": "Gráfico de barras (top 20)",
-        "independent_variable": "Variável independente",
-        "dependent_variable": "Variável dependente",
-        "observed": "Observado",
-        "expected": "Esperado",
-        "pdf_success": "PDF gerado com sucesso!",
-        "group_title": "👥 Grupo 5: Pagamento Digital e Disciplina Financeira",
-        "upload_limit": "Limite 200MB • CSV, XLS, XLSX",
-        "upload_file_label": "Fazer upload do arquivo de pesquisa",
-    "download_pdf": "Baixar PDF",
+        "pdf_notext": "لا توجد بيانات نصية للتحليل.",
     },
 }
+
 def get_text(key: str) -> str:
     lang = st.session_state.get("language", "EN")
     lang_dict = TEXTS.get(lang, TEXTS.get("EN", {}))
@@ -1314,9 +765,9 @@ def interpret_strength(r: float) -> str:
         strength = get_text("corr_strength_moderate")
     else:
         strength = get_text("corr_strength_strong")
-    if r > 0.05:
+    if r > 0:
         direction = get_text("corr_direction_positive")
-    elif r < -0.05:
+    elif r < 0:
         direction = get_text("corr_direction_negative")
     else:
         direction = get_text("corr_direction_zero")
@@ -1661,11 +1112,28 @@ def generate_pdf_button(df, numeric_cols, cat_cols, text_cols):
 # --------------------------- HEADER + HERO ---------------------------
 st.markdown(
     f"""
-    <div class='section-card'>
-      <p class='section-title'>{get_text('title')}</p>
-      <p class='section-subtitle'>{get_text('subtitle')}</p>
+    <div style="
+        width:100%;
+        padding:0.40rem 0.9rem;
+        display:flex;
+        justify-content:center;
+        background:rgba(240, 253, 250, 0.96);
+        box-shadow:0 10px 25px rgba(15, 118, 110, 0.15);
+        border:1px solid rgba(45, 212, 191, 0.55);
+        margin-bottom:0.9rem;
+    ">
+      <div style="font-weight:650; color:#047857; font-size:1.1rem;">
+        {get_text('title')}
+      </div>
     </div>
     """,
+    unsafe_allow_html=True,
+)
+
+content_font_size = "0.95rem"
+st.markdown(
+    f"<p style='text-align:center; color:#065f46; font-size:{content_font_size};'>"
+    f"{get_text('subtitle')}</p>",
     unsafe_allow_html=True,
 )
 
@@ -1680,7 +1148,7 @@ st.markdown(
     """
     <div class='hero-card' style="margin-top:0.6rem; margin-bottom:0.4rem;">
       <h4 style="margin-top:0; margin-bottom:0.4rem; color:#047857;">
-        👥 Group 5: Digital Payment & Financial Discipline
+        👥 Group 5 Class 2
       </h4>
       <ul style="margin:0; padding-left:1.1rem; font-size:0.9rem; color:#065f46;">
     """
@@ -1706,6 +1174,7 @@ st.markdown(
     f"""
     <div class='section-card'>
       <p class='section-title'>{get_text("upload_subheader")}</p>
+      <p class='section-subtitle'>{get_text("subtitle")}</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -1715,7 +1184,10 @@ u1, u2, u3 = st.columns([1, 2, 1])
 with u2:
     st.markdown("<div class='upload-card'>", unsafe_allow_html=True)
     st.markdown(
-        f"<p style='font-weight:600; margin-bottom:0.2rem;'>📤</p><p style='margin-bottom:0.1rem; font-size:{content_font_size};'>{get_text('upload_label')}</p><p class='helper-text'>Limit 200MB • CSV, XLS, XLSX</p>",
+        f"<p style='font-weight:600; margin-bottom:0.2rem;'>📤</p>"
+        f"<p style='margin-bottom:0.1rem; font-size:{content_font_size};'>"
+        f"{get_text('upload_label')}</p>"
+        f"<p class='helper-text'>Limit 200MB • CSV, XLS, XLSX</p>",
         unsafe_allow_html=True,
     )
     uploaded = st.file_uploader(
@@ -1743,13 +1215,22 @@ if filter_cols:
         if selected_vals:
             filtered_df = df[df[fcol].isin(selected_vals)]
 
-with st.expander(get_text("data_preview"), expanded=True):
-    df_preview = filtered_df.head(1000)
-    st.dataframe(df_preview, height=400)
+st.markdown(f"#### {get_text('data_preview')}")
+df_preview = filtered_df.head(1000)
+st.dataframe(df_preview, height=400)
 
 n_rows, n_cols = filtered_df.shape
 n_numeric = filtered_df.select_dtypes(include=[np.number]).shape[1]
 n_cat = filtered_df.select_dtypes(exclude=[np.number]).shape[1]
+st.markdown(
+    f"""
+    <div class='section-card'>
+      <p class='section-title'>{get_text("data_preview")}</p>
+      <p class='section-subtitle'>{get_text("data_preview_subtitle")}</p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 numeric_cols = filtered_df.select_dtypes(include=[np.number]).columns.tolist()
 cat_cols = filtered_df.select_dtypes(exclude=[np.number]).columns.tolist()
