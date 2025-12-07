@@ -24,6 +24,7 @@ from reportlab.platypus import (
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from io import BytesIO
+from scipy import stats
 
 # --------------------------- NLTK INIT ---------------------------
 try:
@@ -1580,6 +1581,7 @@ def build_survey_report_pdf(df, numeric_cols, cat_cols, text_cols):
         plt.close(fig)
         return RLImage(img_buffer, width=width * inch, height=height * inch)
 
+    # TITLE + META
     story.append(Paragraph(get_text("pdf_title"), title_style))
     meta_lines = [
         f"Rows: {df.shape[0]}, Columns: {df.shape[1]}",
@@ -1589,7 +1591,59 @@ def build_survey_report_pdf(df, numeric_cols, cat_cols, text_cols):
         story.append(Paragraph(line, normal_style))
     story.append(Spacer(1, 0.2 * inch))
 
-    # 1. Numeric distributions
+    # SUMMARY
+    story.append(Paragraph(get_text("pdf_section_summary"), h2_style))
+    story.append(Spacer(1, 0.05 * inch))
+
+    story.append(Paragraph(get_text("pdf_summary_overall"), h3_style))
+    overall_text = (
+        f"Total responses: {df.shape[0]} | "
+        f"Numeric columns: {len(numeric_cols)} | "
+        f"Categorical columns: {len(cat_cols)} | "
+        f"Text columns: {len(text_cols)}"
+    )
+    story.append(Paragraph(overall_text, normal_style))
+
+    missing_info = df.isna().sum()
+    mv_rows = [["Column", "Missing", "Percent"]]
+    for col in df.columns:
+        miss = int(missing_info[col])
+        pct = (miss / len(df) * 100) if len(df) > 0 else 0
+        mv_rows.append([col, str(miss), f"{pct:.2f}%"])
+    mv_tbl = make_table(mv_rows, col_widths=[2.5 * inch, 1.2 * inch, 1.2 * inch], font_size=7)
+    if mv_tbl:
+        story.append(Spacer(1, 0.05 * inch))
+        story.append(Paragraph(get_text("pdf_summary_missing"), h3_style))
+        story.append(mv_tbl)
+
+    story.append(Spacer(1, 0.2 * inch))
+
+    # 1. DESCRIPTIVE NUMERIC
+    if numeric_cols:
+        story.append(Paragraph(get_text("pdf_section_numdesc"), h2_style))
+        story.append(Spacer(1, 0.05 * inch))
+
+        desc = df[numeric_cols].apply(pd.to_numeric, errors="coerce").describe().T
+        desc_rows = [["Column", "Count", "Mean", "Std", "Min", "25%", "50%", "75%", "Max"]]
+        for col in desc.index:
+            row = desc.loc[col]
+            desc_rows.append([
+                col,
+                f"{row['count']:.0f}",
+                f"{row['mean']:.3f}",
+                f"{row['std']:.3f}",
+                f"{row['min']:.3f}",
+                f"{row['25%']:.3f}",
+                f"{row['50%']:.3f}",
+                f"{row['75%']:.3f}",
+                f"{row['max']:.3f}",
+            ])
+        desc_tbl = make_table(desc_rows, font_size=6.5)
+        if desc_tbl:
+            story.append(desc_tbl)
+            story.append(Spacer(1, 0.2 * inch))
+
+    # 1b. NUMERIC DISTRIBUTIONS
     if numeric_cols:
         story.append(Paragraph(get_text("pdf_section_numdist"), h2_style))
         story.append(Spacer(1, 0.1 * inch))
@@ -1628,7 +1682,7 @@ def build_survey_report_pdf(df, numeric_cols, cat_cols, text_cols):
             story.append(img)
             story.append(Spacer(1, 0.2 * inch))
 
-    # 2. Scatter plots
+    # 2. SCATTER PLOTS
     if len(numeric_cols) > 1:
         story.append(PageBreak())
         story.append(Paragraph(get_text("pdf_section_scatter"), h2_style))
@@ -1660,7 +1714,7 @@ def build_survey_report_pdf(df, numeric_cols, cat_cols, text_cols):
             story.append(img)
             story.append(Spacer(1, 0.15 * inch))
 
-    # 3. Categorical bar charts
+    # 3. CATEGORICAL BAR CHARTS
     if cat_cols:
         story.append(PageBreak())
         story.append(Paragraph(get_text("pdf_section_catbar"), h2_style))
@@ -1680,7 +1734,7 @@ def build_survey_report_pdf(df, numeric_cols, cat_cols, text_cols):
             story.append(img)
             story.append(Spacer(1, 0.2 * inch))
 
-    # 4. Numeric full stats
+    # 4. NUMERIC FULL STATS
     if numeric_cols:
         story.append(PageBreak())
         story.append(Paragraph(get_text("pdf_section_numfull"), h2_style))
@@ -1715,7 +1769,7 @@ def build_survey_report_pdf(df, numeric_cols, cat_cols, text_cols):
                 story.append(tbl)
             story.append(Spacer(1, 0.15 * inch))
 
-    # 5. Categorical frequency tables
+    # 5. CATEGORICAL FREQUENCY
     if cat_cols:
         story.append(PageBreak())
         story.append(Paragraph(get_text("pdf_section_catfreq"), h2_style))
@@ -1732,7 +1786,63 @@ def build_survey_report_pdf(df, numeric_cols, cat_cols, text_cols):
                 story.append(tbl)
             story.append(Spacer(1, 0.15 * inch))
 
-    # 6. Correlation matrix
+    # 5b. CATEGORICAL DETAIL (CROSSTAB + CHI-SQUARE)
+    last_ctab = None
+    if len(cat_cols) >= 2:
+        story.append(PageBreak())
+        story.append(Paragraph(get_text("pdf_section_catdetail"), h2_style))
+        story.append(Spacer(1, 0.1 * inch))
+
+        max_pairs = min(3, len(cat_cols) - 1)
+        for i in range(max_pairs):
+            col_a = cat_cols[i]
+            col_b = cat_cols[i + 1]
+            story.append(Paragraph(f"<b>{col_a}</b> x <b>{col_b}</b>", h3_style))
+
+            ctab = pd.crosstab(df[col_a], df[col_b])
+            if ctab.empty:
+                story.append(Paragraph(get_text("pdf_catdetail_nodata"), small_style))
+                story.append(Spacer(1, 0.1 * inch))
+                continue
+
+            last_ctab = ctab.copy()
+
+            ctab_pct = ctab.div(ctab.sum(axis=1), axis=0) * 100
+
+            rows = [[""] + list(ctab.columns)]
+            for idx in ctab.index[:10]:
+                row = [str(idx)]
+                for c in ctab.columns:
+                    row.append(f"{ctab.loc[idx, c]} ({ctab_pct.loc[idx, c]:.1f}%)")
+                rows.append(row)
+            tbl = make_table(rows, font_size=6.5)
+            if tbl:
+                story.append(tbl)
+
+            fig, ax = plt.subplots(figsize=(5.5, 2.8))
+            ctab_pct.plot(kind="bar", stacked=True, ax=ax, colormap="viridis")
+            ax.set_title(f"{col_a} vs {col_b} (%)", fontsize=10, fontweight="bold")
+            ax.set_xlabel(col_a)
+            ax.set_ylabel("Percent")
+            ax.legend(fontsize=6)
+            ax.tick_params(axis="x", rotation=45)
+            ax.grid(alpha=0.3, axis="y")
+            plt.tight_layout()
+            img = fig_to_image(fig, width=5.5, height=2.8)
+            story.append(Spacer(1, 0.05 * inch))
+            story.append(img)
+            story.append(Spacer(1, 0.2 * inch))
+
+            # chi-square untuk pasangan ini
+            if ctab.shape[0] > 1 and ctab.shape[1] > 1:
+                chi2, p, dof, _ = stats.chi2_contingency(ctab)
+                chi_text = f"Chi-square: {chi2:.3f}, df={dof}, p-value={p:.4f}"
+                story.append(Paragraph(chi_text, small_style))
+                story.append(Spacer(1, 0.1 * inch))
+
+    # 6. CORRELATION MATRIX + DETAIL
+    corr_pairs = []
+    top_pairs = []
     if len(numeric_cols) > 1:
         story.append(PageBreak())
         story.append(Paragraph(get_text("pdf_section_corr"), h2_style))
@@ -1756,7 +1866,32 @@ def build_survey_report_pdf(df, numeric_cols, cat_cols, text_cols):
             story.append(tbl)
         story.append(Spacer(1, 0.2 * inch))
 
-    # 7. Text analysis
+        # detail korelasi
+        story.append(Spacer(1, 0.1 * inch))
+        story.append(Paragraph(get_text("pdf_section_corrdetail"), h3_style))
+
+        for i in range(len(numeric_cols)):
+            for j in range(i + 1, len(numeric_cols)):
+                a, b = numeric_cols[i], numeric_cols[j]
+                r = corr_matrix.loc[a, b]
+                corr_pairs.append((abs(r), a, b, r))
+        corr_pairs.sort(reverse=True)
+        top_pairs = corr_pairs[:5]
+
+        corr_rows = [["Var A", "Var B", "r", "p-value", "N"]]
+        for _, a, b, r in top_pairs:
+            x = pd.to_numeric(df[a], errors="coerce")
+            y = pd.to_numeric(df[b], errors="coerce")
+            mask = x.notna() & y.notna()
+            if mask.sum() >= 3:
+                r_val, p_val = stats.pearsonr(x[mask], y[mask])
+                corr_rows.append([a, b, f"{r_val:.3f}", f"{p_val:.4f}", str(mask.sum())])
+        corr_tbl = make_table(corr_rows, font_size=7)
+        if corr_tbl:
+            story.append(corr_tbl)
+            story.append(Spacer(1, 0.2 * inch))
+
+    # 7. TEXT ANALYSIS
     if text_cols:
         story.append(PageBreak())
         story.append(Paragraph(get_text("pdf_section_text"), h2_style))
@@ -1778,6 +1913,61 @@ def build_survey_report_pdf(df, numeric_cols, cat_cols, text_cols):
                 story.append(tbl)
             story.append(Spacer(1, 0.2 * inch))
 
+            lengths = df[col].dropna().astype(str).str.len()
+            if not lengths.empty:
+                len_stats = {
+                    "Min length": lengths.min(),
+                    "Max length": lengths.max(),
+                    "Mean length": lengths.mean(),
+                    "Median length": lengths.median(),
+                }
+                len_rows = [["Metric", "Value"]] + [
+                    [k, f"{v:.1f}" if isinstance(v, float) else str(v)]
+                    for k, v in len_stats.items()
+                ]
+                len_tbl = make_table(len_rows, col_widths=[2.5 * inch, 2 * inch], font_size=8)
+                if len_tbl:
+                    story.append(Spacer(1, 0.05 * inch))
+                    story.append(len_tbl)
+
+            story.append(Spacer(1, 0.05 * inch))
+            story.append(Paragraph(get_text("pdf_text_samples"), small_style))
+            examples = df[col].dropna().astype(str).head(5).tolist()
+            for idx, ex in enumerate(examples, 1):
+                story.append(Paragraph(f"{idx}. {ex}", small_style))
+            story.append(Spacer(1, 0.2 * inch))
+
+    # 8. INSIGHTS & HIGHLIGHTS
+    story.append(PageBreak())
+    story.append(Paragraph(get_text("pdf_section_insights"), h2_style))
+    story.append(Spacer(1, 0.1 * inch))
+
+    bullets = []
+
+    if numeric_cols:
+        for col in numeric_cols[:3]:
+            s = pd.to_numeric(df[col], errors="coerce").dropna()
+            if not s.empty:
+                bullets.append(
+                    f"{col}: mean={s.mean():.2f}, median={s.median():.2f}, std={s.std():.2f}, range=({s.min():.2f}–{s.max():.2f})"
+                )
+
+    for col in cat_cols[:3]:
+        top = df[col].value_counts(normalize=True).head(3)
+        if not top.empty:
+            parts = [f"{idx} ({pct*100:.1f}%)" for idx, pct in top.items()]
+            bullets.append(f"{col}: top categories → " + ", ".join(parts))
+
+    if len(numeric_cols) > 1 and top_pairs:
+        for _, a, b, r in top_pairs[:3]:
+            bullets.append(f"Strong correlation between {a} and {b}: r={r:.3f}")
+
+    if not bullets:
+        bullets.append(get_text("pdf_insight_none"))
+
+    for b in bullets:
+        story.append(Paragraph(f"• {b}", normal_style))
+
     doc.build(story)
     buffer.seek(0)
     return buffer
@@ -1795,7 +1985,6 @@ def generate_pdf_button(df, numeric_cols, cat_cols, text_cols):
             key="dl_export_pdf",
         )
         st.success("PDF generated successfully!")
-
 
 # --------------------------- DATA OVERVIEW ---------------------------
 st.markdown(
