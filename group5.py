@@ -9,6 +9,8 @@ from scipy.stats import pearsonr, spearmanr, chi2_contingency, normaltest
 import string
 from collections import Counter
 import time
+import base64
+import os
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import inch
@@ -33,6 +35,43 @@ except LookupError:
     nltk.download("stopwords")
 EN_STOPWORDS = set(stopwords.words("english"))
 PUNCTUATION_TABLE = str.maketrans("", "", string.punctuation)
+
+# ---------- VIDEO BACKGROUND (full-screen) ----------
+def set_video_background(video_path: str):
+    """Set an mp4 video as full-screen background using HTML/CSS."""
+    if not os.path.exists(video_path):
+        st.warning(f"Video background tidak ditemukan: {video_path}")
+        return
+
+    with open(video_path, "rb") as f:
+        data = f.read()
+    b64 = base64.b64encode(data).decode("utf-8")
+    video_data_url = f"data:video/mp4;base64,{b64}"
+
+    st.markdown(
+        f"""
+        <style>
+        .video-bg {{
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            z-index: -1;
+            object-fit: cover;
+        }}
+        .stApp {{
+            background: transparent !important;
+        }}
+        </style>
+        <video class="video-bg" autoplay muted loop playsinline>
+            <source src="{video_data_url}" type="video/mp4">
+        </video>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # --------------------------- MULTI-LANGUAGE TEXTS ---------------------------
 TEXTS = {
@@ -2360,3 +2399,4 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
