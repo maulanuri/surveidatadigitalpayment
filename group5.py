@@ -1227,6 +1227,8 @@ st.set_page_config(
     layout="wide",
 )
 
+set_video_background("assets/background.mp4")
+
 # Aurora background container
 if st.session_state["aurora_mode"]:
     st.markdown(
@@ -2399,4 +2401,5 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
 
