@@ -1499,6 +1499,10 @@ def interpret_strength(r: float) -> str:
         direction = get_text("corr_direction_zero")
     return f"{strength} {direction}"
 
+def describe_numeric(series: pd.Series) -> pd.DataFrame:
+    s = pd.to_numeric(series, errors="coerce")
+    desc = s.describe()
+    return pd.DataFrame(desc)
 
 def correlation_analysis(df: pd.DataFrame, x_col: str, y_col: str, method: str = "pearson"):
     x = pd.to_numeric(df[x_col], errors="coerce")
@@ -2087,28 +2091,37 @@ with st.container():
         st.warning(get_text("no_numeric_cols"))
     else:
         with st.expander(get_text("summary_normality"), expanded=True):
-            num_col = st.selectbox(
-                get_text("select_numeric_col"),
-                options=numeric_cols,
-                help="Column for descriptive statistics",
-                key="desc_num_col",
-            )
-            stats_df = descriptive_stats(filtered_df[num_col])
-            st.markdown(f"**{get_text('desc_stats')}**")
-            st.table(stats_df)
-
-            s_norm = pd.to_numeric(filtered_df[num_col], errors="coerce").dropna()
-            if len(s_norm) >= 8:
-                stat, p_norm = normaltest(s_norm)
-                st.markdown(f"**{get_text('normality_test')}**")
-                st.write(f"{get_text('statistic_label')}: {stat:.4f}")
-                st.write(f"{get_text('p_value_label')}: {p_norm:.4f}")
-                if p_norm < 0.05:
-                    st.info(get_text("deviate_normal"))
-                else:
-                    st.success(get_text("no_deviate_normal"))
+            if not numeric_cols:
+                st.info(get_text("no_numeric_cols"))
             else:
-                st.info(get_text("not_enough_normality"))
+                num_col = st.selectbox(
+                    get_text("select_numeric_col"),
+                    options=numeric_cols,
+                    key="desc_num",
+                )
+
+                desc = describe_numeric(filtered_df[num_col])
+                st.write(desc)
+
+                s_norm = pd.to_numeric(filtered_df[num_col], errors="coerce")
+                x_total = int(s_norm.notna().sum())
+                y_total = float(s_norm.sum(skipna=True))
+
+                st.write(f"Total X: {x_total}")
+                st.write(f"Total Y: {y_total:.2f}")
+
+                s_norm = s_norm.dropna()
+                if len(s_norm) >= 8:
+                    stat, p_norm = normaltest(s_norm)
+                    st.markdown(f"**{get_text('normality_test')}**")
+                    st.write(f"{get_text('statistic_label')}: {stat:.4f}")
+                    st.write(f"{get_text('p_value_label')}: {p_norm:.4f}")
+                    if p_norm < 0.05:
+                        st.info(get_text("deviate_normal"))
+                    else:
+                        st.success(get_text("no_deviate_normal"))
+                else:
+                    st.info(get_text("not_enough_normality"))
 
         with st.expander(get_text("distribution"), expanded=False):
             num_col2 = st.selectbox(
@@ -2233,36 +2246,65 @@ with st.container():
         if len(numeric_cols) < 2:
             st.info(get_text("not_enough_numeric"))
         else:
-            c1s, c2s = st.columns(2)
-            with c1s:
-                x_s = st.selectbox(
-                    get_text("select_x_numeric"),
-                    options=numeric_cols,
-                    key="spearman_x",
+            num_df = filtered_df[numeric_cols].apply(
+                pd.to_numeric, errors="coerce"
+            ).dropna(how="all")
+        if num_df.shape[0] < 2:
+            st.warning(get_text("warning_select_valid"))
+        else:
+            r_values = []
+            p_values = []
+
+            for i in range(len(numeric_cols)):
+                for j in range(i + 1, len(numeric_cols)):
+                    x_col = numeric_cols[i]
+                    y_col = numeric_cols[j]
+
+                    x = pd.to_numeric(num_df[x_col], errors="coerce")
+                    y = pd.to_numeric(num_df[y_col], errors="coerce")
+                    mask = x.notna() & y.notna()
+                    if mask.sum() >= 3:
+                        r, p = spearmanr(x[mask], y[mask])
+                        if not np.isnan(r):
+                            r_values.append(r)
+                            p_values.append(p)
+
+            if not r_values:
+                st.warning(get_text("warning_select_valid"))
+            else:
+                total_spearman = float(np.mean(np.abs(r_values)))
+                avg_p_value = float(np.mean(p_values))
+
+                def interpret_strength(r):
+                    r_abs = abs(r)
+                    if r_abs < 0.1:
+                        return get_text("corr_strength_none")
+                    elif r_abs < 0.3:
+                        return get_text("corr_strength_weak")
+                    elif r_abs < 0.5:
+                        return get_text("corr_strength_moderate")
+                    else:
+                        return get_text("corr_strength_strong")
+
+                st.markdown("**Total Spearman Rank Correlation (all numeric pairs)**")
+                st.metric(
+                    label=get_text("corr_coef"),
+                    value=f"{total_spearman:.3f}",
                 )
-            with c2s:
-                y_s = st.selectbox(
-                    get_text("select_y_numeric"),
-                    options=[c for c in numeric_cols if c != x_s],
-                    key="spearman_y",
-                )
-            if x_s and y_s:
-                r_s, p_s = correlation_analysis(filtered_df, x_s, y_s, method="spearman")
-                if np.isnan(r_s):
-                    st.warning(get_text("warning_select_valid"))
+
+                # Interpretation + p-value info
+                strength_text = interpret_strength(total_spearman)
+                if avg_p_value < 0.05:
+                    signif_text = get_text("significant_assoc")
                 else:
-                    st.markdown(f"**{get_text('spearman_result')}**")
-                    out_s = pd.DataFrame(
-                        {
-                            get_text("corr_coef"): [r_s],
-                            get_text("p_value"): [p_s],
-                        }
-                    )
-                    st.table(out_s)
-                    st.markdown(
-                        f"**{get_text('interpretation')}:** "
-                        f"{interpret_strength(r_s)}"
-                    )
+                    signif_text = get_text("no_significant_assoc")
+
+                st.write(
+                    f"{get_text('interpretation')}: "
+                    f"{strength_text} "
+                    f" (avg p-value ≈ {avg_p_value:.3f}; {signif_text})"
+                )
+
 
     with st.expander(get_text("chi_header"), expanded=False):
         chi_df = filtered_df.copy()
@@ -2401,5 +2443,4 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
 
