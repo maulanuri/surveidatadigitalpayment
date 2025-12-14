@@ -2242,6 +2242,11 @@ with st.container():
                         f"{interpret_strength(r)}"
                     )
 
+                    # Full Pearson Correlation Matrix
+                    st.markdown("**Full Pearson Correlation Matrix**")
+                    corr_matrix = filtered_df[numeric_cols].apply(pd.to_numeric, errors="coerce").corr()
+                    st.dataframe(corr_matrix.style.background_gradient(cmap='coolwarm', axis=None).format("{:.2f}"))
+
     with st.expander(get_text("spearman_header"), expanded=False):
         if len(numeric_cols) < 2:
             st.info(get_text("not_enough_numeric"))
@@ -2443,4 +2448,3 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
